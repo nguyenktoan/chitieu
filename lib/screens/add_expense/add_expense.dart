@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import '../../helpers/db/database_helper.dart';
 import '../../helpers/db/dao/category_dao.dart';
-import '../../helpers/db/dao/transaction_dao.dart';
+import '../../helpers/db/models/insert_transaction_model.dart';
+import '../../helpers/providers/transaction_provider.dart';
 
 class AddExpense extends StatefulWidget {
   @override
@@ -71,17 +73,16 @@ class _AddExpenseState extends State<AddExpense> {
       return;
     }
 
-    final transactionData = {
-      "amount": double.parse(_amountController.text.replaceAll(',', '')),
-      "category_type": _transactionType,
-      "category_id": _categoryId,
-      "note": _noteController.text,
-      "date": DateFormat('yyyy-MM-dd').format(_selectedDate),
-    };
+    final insertTransactionData = InsertTransactionModel(
+      amount: int.parse(_amountController.text.replaceAll(',', '')),
+      note: _noteController.text,
+      categoryType: _transactionType,
+      categoryId: _categoryId,
+      date: _selectedDate,
+    );
 
-    final db = await DatabaseHelper().database;
-    final transactionDao = TransactionDao();
-    await transactionDao.insertTransaction(db, transactionData);
+    // Thêm giao dịch mới vào provider
+    await context.read<TransactionProvider>().addTransaction(insertTransactionData);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

@@ -1,8 +1,10 @@
-import 'package:chitieu/components/transaction_items/edit_transaction_screen.dart';
+import 'package:chitieu/screens/home/home_screen.dart';
+import 'package:chitieu/screens/home/main_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:chitieu/helpers/db/database_helper.dart';
-import 'package:chitieu/helpers/db/dao/transaction_dao.dart';
+import 'package:provider/provider.dart';
+import '../../helpers/providers/transaction_provider.dart';
+import 'edit_transaction_screen.dart';  // Đảm bảo bạn đã cài đặt Provider
 
 class TransactionDetailScreen extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -14,16 +16,26 @@ class TransactionDetailScreen extends StatefulWidget {
 }
 
 class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
-  late DatabaseHelper _databaseHelper;
-  late TransactionDao _transactionDao;
 
-  @override
-  void initState() {
-    super.initState();
-    _databaseHelper = DatabaseHelper();
-    _transactionDao = TransactionDao();
+  // Tạo một hàm để xử lý việc xóa giao dịch qua Provider
+  Future<void> _deleteTransaction(int? transactionId) async {
+    if (transactionId == null) return;
+
+    // Sử dụng Provider để xóa giao dịch
+    await Provider.of<TransactionProvider>(context, listen: false)
+        .deleteTransaction(transactionId);
+
+    // Quay lại màn hình trước đó sau khi xóa
+    Navigator.pop(context, true);
   }
 
+  // Cập nhật giao dịch mới nhất từ Provider
+  Future<void> _reloadTransaction() async {
+    await Provider.of<TransactionProvider>(context, listen: false).fetchTransactions();
+    setState(() {});
+  }
+
+  // Hàm chuyển đổi biểu tượng
   IconData resolveIcon(String iconKey) {
     final iconMap = const {
       "attach_money": Icons.attach_money,
@@ -41,7 +53,6 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     return iconMap[iconKey] ?? Icons.error;
   }
 
-  // Tính toán và hiển thị giao dịch chi tiết
   @override
   Widget build(BuildContext context) {
     final transaction = widget.transaction;
@@ -63,8 +74,12 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () async {
-              // Chuyển sang màn hình sửa giao dịch
-              await _editTransaction(transaction);
+              // Đợi kết quả trả về khi quay lại từ trang chỉnh sửa
+              final shouldReload = await _editTransaction(transaction);
+              if (shouldReload == true) {
+                // Nếu có thay đổi, reload lại dữ liệu
+                _reloadTransaction();
+              }
             },
           ),
         ],
@@ -80,21 +95,61 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildDetailRow(icon: icon, iconColor: Colors.blue, label: category, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  _buildDetailRow(
+                    icon: icon,
+                    iconColor: Colors.blue,
+                    label: category,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
                   const Divider(height: 30, color: Colors.grey),
-                  _buildDetailRow(icon: Icons.attach_money, iconColor: Colors.red, label: formatCurrency(amount), style: TextStyle(fontSize: 24, fontWeight: FontWeight.w600, color: Colors.red.shade700)),
+                  _buildDetailRow(
+                    icon: Icons.attach_money,
+                    iconColor: Colors.red,
+                    label: formatCurrency(amount),
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
                   const Divider(height: 30, color: Colors.grey),
-                  _buildDetailRow(icon: Icons.calendar_today, iconColor: Colors.green, label: date, style: TextStyle(fontSize: 18, color: Colors.grey.shade700)),
+                  _buildDetailRow(
+                    icon: Icons.calendar_today,
+                    iconColor: Colors.green,
+                    label: date,
+                    style: TextStyle(fontSize: 18, color: Colors.grey.shade700),
+                  ),
                   const Divider(height: 30, color: Colors.grey),
-                  _buildDetailRow(icon: Icons.note, iconColor: Colors.orange, label: note, style: TextStyle(fontSize: 18, color: Colors.black87)),
+                  _buildDetailRow(
+                    icon: Icons.note,
+                    iconColor: Colors.orange,
+                    label: note,
+                    style: TextStyle(fontSize: 18, color: Colors.black87),
+                  ),
                   const SizedBox(height: 30),
                   Center(
                     child: ElevatedButton(
                       onPressed: () async {
                         await _deleteTransaction(transaction['id']);
                       },
-                      style: ElevatedButton.styleFrom(foregroundColor: Colors.white, backgroundColor: Colors.red.shade400, padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                      child: const Text('Xóa giao dịch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        backgroundColor: Colors.red.shade400,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 40, vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                      child: const Text(
+                        'Xóa giao dịch',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                 ],
@@ -106,13 +161,21 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
-  // Hàm tiện ích để tạo hàng chi tiết với icon và label
-  Widget _buildDetailRow({required IconData icon, required Color iconColor, required String label, TextStyle? style}) {
+  // Widget dùng để tạo các dòng chi tiết
+  Widget _buildDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String label,
+    TextStyle? style,
+  }) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10.0),
-          decoration: BoxDecoration(color: iconColor.withOpacity(0.1), shape: BoxShape.circle),
+          decoration: BoxDecoration(
+            color: iconColor.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
           child: Icon(icon, color: iconColor, size: 30),
         ),
         const SizedBox(width: 15),
@@ -127,31 +190,31 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
     );
   }
 
+  // Hàm định dạng tiền tệ
   String formatCurrency(int amount) {
     final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     return formatCurrency.format(amount);
   }
 
-  // Xóa giao dịch từ cơ sở dữ liệu
-  Future<void> _deleteTransaction(int? transactionId) async {
-    if (transactionId == null) return;
-
-    final db = await _databaseHelper.database;
-    await _transactionDao.deleteTransaction(db, transactionId);
-
-    // Quay lại màn hình trước đó sau khi xóa
-    Navigator.pop(context);
-  }
-
-  // Chỉnh sửa giao dịch
-  Future<void> _editTransaction(Map<String, dynamic> transaction) async {
-    // Hiển thị form chỉnh sửa giao dịch
-    // Giả sử có màn hình chỉnh sửa (EditTransactionScreen) mà bạn cần tạo
-    Navigator.push(
+  // Hàm chỉnh sửa giao dịch và chuyển hướng về MainScreen sau khi hoàn thành
+  Future<bool?> _editTransaction(Map<String, dynamic> transaction) async {
+    final shouldReload = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditTransactionScreen(transaction: transaction),
       ),
     );
+
+    if (shouldReload == true) {
+      // Quay về MainScreen sau khi chỉnh sửa thành công
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(),  // Đảm bảo MainScreen được import
+        ),
+      );
+    }
+
+    return shouldReload;
   }
 }

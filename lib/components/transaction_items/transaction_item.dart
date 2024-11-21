@@ -1,6 +1,6 @@
-import 'package:chitieu/components/transaction_items/transaction_details.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart'; // Dùng để định dạng tiền tệ
+import 'transaction_details.dart'; // Đảm bảo bạn đã có màn hình chi tiết giao dịch
 
 class TransactionItem extends StatefulWidget {
   final Map<String, dynamic> transaction; // Đảm bảo rằng mỗi giao dịch là một map
@@ -26,29 +26,34 @@ class _TransactionItemState extends State<TransactionItem> {
     "shopping_bag": Icons.shopping_bag,
   };
 
+  // Phương thức định dạng số tiền
   String formatCurrency(num amount) {
     final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
     return formatCurrency.format(amount);
   }
 
+  // Phương thức giải quyết màu sắc từ chuỗi
   Color resolveColor(String? colorString) {
     try {
       return Color(int.parse(colorString ?? "0xFF888888"));
     } catch (_) {
-      return Colors.grey; // Màu mặc định
+      return Colors.grey; // Màu mặc định nếu gặp lỗi
     }
   }
 
+  // Phương thức giải quyết biểu tượng từ key
   IconData resolveIcon(String? iconKey) {
-    return iconMap[iconKey] ?? Icons.error;
+    return iconMap[iconKey] ?? Icons.error; // Trả về icon lỗi nếu không tìm thấy
   }
 
+  // Phương thức rút gọn ghi chú
   String truncatedNoteText(String note) {
     return note.isEmpty
         ? "Không có ghi chú"
         : (note.length > 30 ? "${note.substring(0, 30)}..." : note);
   }
 
+  // Phương thức xử lý ngày tháng
   String resolveDate(String? date) {
     return date ?? "Ngày không xác định";
   }
@@ -64,13 +69,14 @@ class _TransactionItemState extends State<TransactionItem> {
 
     if (result != null) {
       setState(() {
-        widget.transaction.addAll(result); // Giả sử result là Map chứa dữ liệu cập nhật
+        widget.transaction.addAll(result); // Cập nhật giao dịch với dữ liệu mới nếu có
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Lấy dữ liệu từ transaction
     String note = widget.transaction["note"] ?? "";
     String truncatedNote = truncatedNoteText(note);
 
@@ -81,7 +87,7 @@ class _TransactionItemState extends State<TransactionItem> {
     IconData icon = resolveIcon(widget.transaction["icon"]);
 
     return GestureDetector(
-      onTap: () => _navigateToDetails(context),
+      onTap: () => _navigateToDetails(context), // Điều hướng khi nhấn vào giao dịch
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(10),
@@ -102,6 +108,7 @@ class _TransactionItemState extends State<TransactionItem> {
           children: [
             Row(
               children: [
+                // Hiển thị biểu tượng của giao dịch
                 Container(
                   width: 30,
                   height: 30,
@@ -115,6 +122,7 @@ class _TransactionItemState extends State<TransactionItem> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Tên danh mục giao dịch
                     Text(
                       widget.transaction["category_name"] ?? "Không có tên",
                       style: TextStyle(
@@ -123,6 +131,7 @@ class _TransactionItemState extends State<TransactionItem> {
                       ),
                     ),
                     const SizedBox(height: 4),
+                    // Ghi chú giao dịch
                     Text(
                       truncatedNote,
                       style: TextStyle(
@@ -138,6 +147,7 @@ class _TransactionItemState extends State<TransactionItem> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
+                // Số tiền giao dịch
                 Text(
                   formatCurrency(amount),
                   style: TextStyle(
@@ -145,6 +155,7 @@ class _TransactionItemState extends State<TransactionItem> {
                     color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
+                // Ngày giao dịch
                 Text(
                   date,
                   style: TextStyle(

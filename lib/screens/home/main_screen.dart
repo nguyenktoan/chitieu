@@ -1,13 +1,12 @@
-import 'dart:math';
-import 'package:chitieu/screens/add_expense/add_expense.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
-
+import 'package:provider/provider.dart';
 import 'package:chitieu/components/transaction_items/transaction_item.dart';
-import 'package:chitieu/helpers/db/database_helper.dart';
-import 'package:chitieu/helpers/db/dao/transaction_dao.dart';
+import 'package:chitieu/helpers/db/models/transaction_model.dart';
+import 'package:chitieu/screens/add_expense/add_expense.dart';
 import 'package:chitieu/screens/all_transactions/all_transactions.dart';
+
+import '../../helpers/providers/transaction_provider.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -16,16 +15,8 @@ class MainScreen extends StatefulWidget {
   State<MainScreen> createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateMixin {
-  final DatabaseHelper _databaseHelper = DatabaseHelper();
-  final TransactionDao _transactionDao = TransactionDao();
-
-  List<Map<String, dynamic>> _transactions = [];
-  int _totalBalance = 0;
-  int _income = 0;
-  int _expense = 0;
-  bool _isLoading = true;
-
+class _MainScreenState extends State<MainScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _shimmerController;
   late Animation<double> _shimmerAnimation;
 
@@ -46,73 +37,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
       ),
     );
 
-    _loadInitialData();
-  }
-
-  Future<void> _loadInitialData() async {
-    await _loadTransactions();
-    await _fetchBalanceData();
-    setState(() {
-      _isLoading = false;
+    // Load transactions when the screen is initialized
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+      await transactionProvider.fetchTransactions();
     });
-  }
-
-  Future<void> _loadTransactions() async {
-    final db = await _databaseHelper.database;
-    final transactions = await _transactionDao.fetchTransactions(db);
-
-    setState(() {
-      _transactions = transactions;
-    });
-  }
-
-  Future<void> _fetchBalanceData() async {
-    final db = await _databaseHelper.database;
-    final balanceData = await _transactionDao.calculateBalance(db);
-
-    setState(() {
-      _income = balanceData['income']!;
-      _expense = balanceData['expense']!;
-      _totalBalance = balanceData['balance']!;
-    });
-  }
-
-  String formatCurrency(int amount) {
-    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    return formatCurrency.format(amount);
-  }
-
-  Widget _buildCustomShimmer({
-    double? width,
-    double? height,
-    BorderRadiusGeometry? borderRadius
-  }) {
-    return AnimatedBuilder(
-      animation: _shimmerController,
-      builder: (context, child) {
-        return Container(
-          width: width,
-          height: height,
-          decoration: BoxDecoration(
-            borderRadius: borderRadius ?? BorderRadius.circular(8),
-            gradient: LinearGradient(
-              colors: [
-                Colors.grey[300]!,
-                Colors.grey[200]!,
-                Colors.grey[300]!,
-              ],
-              stops: [
-                _shimmerAnimation.value - 0.2,
-                _shimmerAnimation.value,
-                _shimmerAnimation.value + 0.2,
-              ],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -121,34 +50,49 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
+  String formatCurrency(int amount) {
+    final formatCurrency = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
+    return formatCurrency.format(amount);
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        body: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildUserHeader(),
-                  const SizedBox(height: 20),
-                  _isLoading ? _buildLoadingBalanceCard() : _buildBalanceCard(),
-                  const SizedBox(height: 20),
-                  _buildTransactionsHeader(),
-                  const SizedBox(height: 10),
-                  _isLoading ? _buildTransactionsLoading() : _buildRecentTransactionsList(),
-                ],
-              ),
-            ),
-          ],
+        body: Consumer<TransactionProvider>(
+          builder: (context, transactionProvider, child) {
+            return Stack(
+              children: [
+                Padding(
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildUserHeader(context),
+                      const SizedBox(height: 20),
+                      transactionProvider.isLoading
+                          ? _buildLoadingBalanceCard()
+                          : _buildBalanceCard(transactionProvider),
+                      const SizedBox(height: 20),
+                      _buildTransactionsHeader(context),
+                      const SizedBox(height: 10),
+                      transactionProvider.isLoading
+                          ? _buildTransactionsLoading()
+                          : _buildRecentTransactionsList(
+                          transactionProvider.transactions),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildUserHeader() {
+  Widget _buildUserHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -160,10 +104,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: LinearGradient(
-                  colors: [
-                    Colors.blue.shade200,
-                    Colors.blue.shade400
-                  ],
+                  colors: [Colors.blue.shade200, Colors.blue.shade400],
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -253,7 +194,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildBalanceCard() {
+  Widget _buildBalanceCard(TransactionProvider provider) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -287,7 +228,7 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
             ),
             const SizedBox(height: 10),
             Text(
-              formatCurrency(_totalBalance),
+              formatCurrency(provider.totalBalance),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 40,
@@ -299,23 +240,16 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 _buildBalanceInfoItem(
-
                     label: 'Income',
-                    amount: _income,
+                    amount: provider.income,
                     color: Colors.green,
-                    icon: Icons.trending_up
-                ),
-                Container(
-                    height: 50,
-                    width: 1,
-                    color: Colors.white24
-                ),
+                    icon: Icons.trending_up),
+                Container(height: 50, width: 1, color: Colors.white24),
                 _buildBalanceInfoItem(
                     label: 'Expenses',
-                    amount: _expense,
+                    amount: provider.expense,
                     color: Colors.red,
-                    icon: Icons.trending_down
-                ),
+                    icon: Icons.trending_down),
               ],
             ),
           ],
@@ -345,20 +279,11 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-              ),
-            ),
+            Text(label, style: const TextStyle(color: Colors.white)),
             Text(
               formatCurrency(amount),
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+                  color: Colors.white, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -366,108 +291,62 @@ class _MainScreenState extends State<MainScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildTransactionsHeader() {
+  Widget _buildTransactionsHeader(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          "Recent Transactions",
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurface,
-          ),
+          'Recent Transactions',
+          style: Theme.of(context).textTheme.titleLarge,
         ),
-        GestureDetector(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const AllTransactionsScreen(),
-              ),
-            );
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).push(MaterialPageRoute(
+                builder: (context) => const AllTransactionsScreen()));
           },
-          child: Text(
-            "View all",
-            style: TextStyle(
-              fontSize: 16,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-          ),
+          child: const Text('View All'),
         ),
       ],
     );
   }
 
   Widget _buildTransactionsLoading() {
+    return const Center(
+      child: CircularProgressIndicator(),
+    );
+  }
+
+  Widget _buildRecentTransactionsList(List<UserTransaction> transactions) {
+    // Lấy tối đa 5 giao dịch đầu tiên, nếu danh sách có ít hơn 5 thì sẽ lấy hết
+    final limitedTransactions = transactions.take(5).toList();
+
     return Expanded(
       child: ListView.builder(
-        itemCount: 5,
+        itemCount: limitedTransactions.length, // Hiển thị tối đa 5 giao dịch
         itemBuilder: (context, index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: _buildCustomShimmer(
-              width: double.infinity,
-              height: 60,
-              borderRadius: BorderRadius.circular(12),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildRecentTransactionsList() {
-    return Expanded(
-      child: _transactions.isEmpty
-          ? _buildEmptyTransactionState()
-          : ListView.builder(
-        itemCount: min(5, _transactions.length),
-        itemBuilder: (context, index) {
-          return TransactionItem(
-            transaction: _transactions[index],
-          );
+          final transaction = limitedTransactions[index];
+          return TransactionItem(transaction: transaction.toMap()); // Chuyển đổi thành Map
         },
       ),
     );
   }
 
 
-  Widget _buildEmptyTransactionState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-              Icons.wallet_outlined,
-              size: 80,
-              color: Theme.of(context).colorScheme.secondary.withOpacity(0.5)
+
+  Widget _buildCustomShimmer(
+      {double? width, double? height, BorderRadiusGeometry? borderRadius}) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius ?? BorderRadius.circular(8),
+            color: Colors.grey.withOpacity(_shimmerAnimation.value),
           ),
-          const SizedBox(height: 16),
-          Text(
-            'No transactions yet',
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.secondary,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => AddExpense(),
-                ),
-              );
-            },
-            child: const Text('Add First Transaction'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
-
-
 }

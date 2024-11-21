@@ -1,7 +1,11 @@
+import 'package:chitieu/helpers/db/models/update_transaction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:chitieu/helpers/db/dao/transaction_dao.dart';
-import 'package:chitieu/helpers/db/database_helper.dart';
+import 'package:provider/provider.dart'; // Import the provider package
+import 'package:chitieu/helpers/db/models/transaction_model.dart'; // Import UserTransaction model
+
+import '../../helpers/db/models/insert_transaction_model.dart';
+import '../../helpers/providers/transaction_provider.dart'; // Import the TransactionProvider
 
 class EditTransactionScreen extends StatefulWidget {
   final Map<String, dynamic> transaction;
@@ -132,23 +136,29 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
   }
 
   void _saveTransaction() async {
-    // Validate the form before saving
     if (_formKey.currentState!.validate()) {
-      final updatedTransaction = {
-        'id': widget.transaction["id"],
-        'amount': int.parse(_amountController.text),
-        'note': _noteController.text,
-      };
+      // Chuyển giá trị ngày từ String sang DateTime nếu cần
+      final date = DateTime.tryParse(widget.transaction["date"]) ?? DateTime.now();
+
+      final updatedTransaction = UpdateTransactionModel(
+        id: widget.transaction["id"],  // Lấy id từ giao dịch hiện tại
+        amount: int.parse(_amountController.text),
+        note: _noteController.text,
+        categoryType: widget.transaction["categoryType"] ?? "default_category",
+        categoryId: widget.transaction["categoryId"] ?? 1,
+        date: date,
+      );
 
       try {
-        await _updateTransaction(updatedTransaction);
+        // Sử dụng Provider để cập nhật giao dịch
+        await context.read<TransactionProvider>().updateTransaction(updatedTransaction);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Giao dịch đã được cập nhật'),
             backgroundColor: Colors.green,
           ),
         );
-        Navigator.pop(context, true); // Return true to indicate successful update
+        Navigator.pop(context, true);  // Trở lại màn hình trước với kết quả thành công
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -158,10 +168,5 @@ class _EditTransactionScreenState extends State<EditTransactionScreen> {
         );
       }
     }
-  }
-
-  Future<void> _updateTransaction(Map<String, dynamic> updatedTransaction) async {
-    final db = await DatabaseHelper().database;
-    await TransactionDao().updateTransaction(db, updatedTransaction);
   }
 }
