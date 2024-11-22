@@ -6,12 +6,24 @@ import 'package:flutter/material.dart';
 
 class CategoryProvider with ChangeNotifier {
   List<Map<String, dynamic>> _categories = [];
+  bool _isLoading = false;
 
   List<Map<String, dynamic>> get categories => _categories;
+  bool get isLoading => _isLoading;
 
   Future<void> fetchCategories(String transactionType) async {
-    final db = await DatabaseHelper().database;
-    _categories = await CategoryDao().fetchCategories(db, transactionType);
-    notifyListeners();
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final db = await DatabaseHelper().database;
+      _categories = await CategoryDao().fetchCategories(db, transactionType);
+    } catch (e) {
+      // Log lỗi nếu cần thiết
+      print("Error fetching categories: $e");
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 }
