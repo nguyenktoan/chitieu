@@ -7,6 +7,7 @@ class UserTransaction {
   final String icon;
   final String color;
   final DateTime date;
+  final int categoryId; // Thêm thuộc tính categoryId
 
   // Constructor
   UserTransaction({
@@ -18,6 +19,7 @@ class UserTransaction {
     required this.icon,
     required this.color,
     required this.date,
+    required this.categoryId, // Khởi tạo categoryId
   }) {
     if (amount <= 0) {
       throw ArgumentError('Amount should be greater than zero');
@@ -33,13 +35,7 @@ class UserTransaction {
       throw ArgumentError('Map cannot be empty');
     }
 
-    // Kiểm tra giá trị ngày tháng hợp lệ
     DateTime parsedDate = DateTime.tryParse(map['date']) ?? DateTime.now();
-
-    // Nếu ngày không hợp lệ, ta sẽ trả về DateTime.now() làm giá trị mặc định.
-    if (parsedDate.year == 1970) {
-      parsedDate = DateTime.now();
-    }
 
     return UserTransaction(
       id: map['id'] ?? 0,
@@ -49,7 +45,8 @@ class UserTransaction {
       categoryName: map['category_name'] ?? 'Uncategorized',
       icon: map['icon'] ?? '',
       color: map['color'] ?? '',
-      date: parsedDate, // Gán ngày đã xử lý
+      date: parsedDate,
+      categoryId: map['category_id'] ?? 0, // Thêm ánh xạ cho categoryId
     );
   }
 
@@ -64,12 +61,12 @@ class UserTransaction {
       'icon': icon,
       'color': color,
       'date': date.toIso8601String(),
+      'category_id': categoryId, // Thêm categoryId vào Map
     };
   }
 
   @override
   String toString() {
-    return 'Transaction{id: $id, amount: $amount, note: $note, categoryType: $categoryType, categoryName: $categoryName, date: $date}';
+    return 'Transaction{id: $id, amount: $amount, note: $note, categoryType: $categoryType, categoryName: $categoryName, categoryId: $categoryId, date: $date}';
   }
-
 }

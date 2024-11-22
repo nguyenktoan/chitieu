@@ -1,13 +1,13 @@
+import 'package:chitieu/helpers/providers/category_provider.dart';
+import 'package:chitieu/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../helpers/db/database_helper.dart';
-import '../../helpers/db/dao/category_dao.dart';
-import '../../helpers/db/models/insert_transaction_model.dart';
-import '../../helpers/providers/transaction_provider.dart';
+import 'package:chitieu/helpers/db/models/update_transaction.dart';
+import 'package:chitieu/helpers/providers/transaction_provider.dart';
 
-// Định nghĩa theme colors
+// Định nghĩa theme colors - giữ nhất quán với AddExpense
 class AppColors {
   static const primary = Color(0xFF00B2E7);
   static const secondary = Color(0xFFE064F7);
@@ -17,119 +17,59 @@ class AppColors {
   static final outline = Colors.grey.shade400;
 }
 
-class AddExpense extends StatefulWidget {
+class EditTransactionScreen extends StatefulWidget {
+  final Map<String, dynamic> transaction;
+
+  const EditTransactionScreen({required this.transaction, super.key});
+
   @override
-  _AddExpenseState createState() => _AddExpenseState();
+  State<EditTransactionScreen> createState() => _EditTransactionScreenState();
 }
 
-class _AddExpenseState extends State<AddExpense> {
+class _EditTransactionScreenState extends State<EditTransactionScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
+  DateTime? _selectedDate;
+  int? _categoryId;
   String _transactionType = "expense";
-  int _categoryId = 0;
-  DateTime _selectedDate = DateTime.now();
-  List<Map<String, dynamic>> _categories = [];
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
-  }
+    _amountController.text = widget.transaction["amount"].toString();
+    _noteController.text = widget.transaction["note"] ?? "";
+    _selectedDate = DateTime.tryParse(widget.transaction["date"]) ?? DateTime.now();
+    _categoryId = widget.transaction["category_id"];
+    _transactionType = widget.transaction["category_type"] ?? "expense";
 
-  Future<void> _loadCategories() async {
-    final db = await DatabaseHelper().database;
-    final categoryDao = CategoryDao();
-    final categoryData = await categoryDao.fetchCategories(db, _transactionType);
-
-    setState(() {
-      _categories = categoryData;
-      if (_categories.isNotEmpty) {
-        _categoryId = _categories[0]['id'];
-      }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CategoryProvider>().fetchCategories(_transactionType);
     });
   }
 
-  Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: AppColors.onSurface,
-              secondary: AppColors.secondary,
-            ),
-            dialogBackgroundColor: Colors.white,
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
-  }
-
-  void _saveTransaction() async {
-    if (_amountController.text.isEmpty || _categoryId == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Vui lòng nhập đủ thông tin giao dịch"),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-        ),
-      );
-      return;
-    }
-
-    final insertTransactionData = InsertTransactionModel(
-      amount: int.parse(_amountController.text.replaceAll(',', '')),
-      note: _noteController.text,
-      categoryType: _transactionType,
-      categoryId: _categoryId,
-      date: _selectedDate,
-    );
-
-    await context.read<TransactionProvider>().addTransaction(insertTransactionData);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Giao dịch đã được lưu thành công!"),
-        backgroundColor: Colors.green.shade400,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-
-    Navigator.pop(context);
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _noteController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final categoryProvider = Provider.of<CategoryProvider>(context);
+
     return Scaffold(
       backgroundColor: AppColors.surface,
       appBar: AppBar(
         title: Text(
-          "Thêm Giao Dịch",
+          'Chỉnh Sửa Giao Dịch',
           style: TextStyle(
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: AppColors.onSurface,
           ),
         ),
+        centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: IconThemeData(color: AppColors.onSurface),
@@ -149,10 +89,10 @@ class _AddExpenseState extends State<AddExpense> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildTransactionTypeSegment(),
-                  SizedBox(height: 20),
+                  SizedBox(height: 24),
                   _buildAmountInput(),
                   SizedBox(height: 20),
-                  _buildCategoryDropdown(),
+                  _buildCategoryDropdown(categoryProvider.categories),
                   SizedBox(height: 20),
                   _buildDatePicker(),
                   SizedBox(height: 20),
@@ -202,7 +142,8 @@ class _AddExpenseState extends State<AddExpense> {
       onTap: () {
         setState(() {
           _transactionType = type;
-          _loadCategories();
+          _categoryId = null;
+          context.read<CategoryProvider>().fetchCategories(_transactionType);
         });
       },
       child: Container(
@@ -274,7 +215,12 @@ class _AddExpenseState extends State<AddExpense> {
     );
   }
 
-  Widget _buildCategoryDropdown() {
+  Widget _buildCategoryDropdown(List<Map<String, dynamic>> categories) {
+    final validCategoryIds = categories.map((category) => category['id']).toList();
+    if (!validCategoryIds.contains(_categoryId)) {
+      _categoryId = null;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,8 +233,8 @@ class _AddExpenseState extends State<AddExpense> {
         ),
         SizedBox(height: 8),
         DropdownButtonFormField<int>(
-          value: _categoryId,
-          hint: Text("Chọn danh mục"),
+          value: _categoryId, // Giá trị hiện tại của dropdown
+          hint: Text(_categoryId != null ? 'ID: $_categoryId' : 'Chọn danh mục'), // Hiển thị hint nếu chưa chọn
           decoration: InputDecoration(
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -303,10 +249,10 @@ class _AddExpenseState extends State<AddExpense> {
           ),
           onChanged: (int? newValue) {
             setState(() {
-              _categoryId = newValue!;
+              _categoryId = newValue!; // Chỉ thay đổi giá trị khi người dùng chọn một mục
             });
           },
-          items: _categories.map<DropdownMenuItem<int>>((category) {
+          items: categories.map<DropdownMenuItem<int>>((category) {
             return DropdownMenuItem<int>(
               value: category['id'],
               child: Row(
@@ -314,14 +260,14 @@ class _AddExpenseState extends State<AddExpense> {
                   Icon(Icons.category, color: AppColors.primary),
                   SizedBox(width: 12),
                   Text(
-                    category['name'] ?? 'Không có tên',
+                    category['name'],
                     style: TextStyle(color: AppColors.onSurface),
                   ),
                 ],
               ),
             );
           }).toList(),
-        ),
+        )
       ],
     );
   }
@@ -352,7 +298,7 @@ class _AddExpenseState extends State<AddExpense> {
                 Icon(Icons.calendar_today, color: AppColors.primary),
                 SizedBox(width: 12),
                 Text(
-                  DateFormat('dd/MM/yyyy').format(_selectedDate),
+                  DateFormat('dd/MM/yyyy').format(_selectedDate!),
                   style: TextStyle(
                     fontWeight: FontWeight.w500,
                     color: AppColors.onSurface,
@@ -393,7 +339,6 @@ class _AddExpenseState extends State<AddExpense> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 12.0),  // Adjust vertical padding here
           ),
           maxLines: 3,
           style: TextStyle(color: AppColors.onSurface),
@@ -404,13 +349,12 @@ class _AddExpenseState extends State<AddExpense> {
 
   Widget _buildSaveButton() {
     final primaryColor = Theme.of(context).colorScheme.primary;  // Lấy màu primary từ Theme
-    final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;  // Lấy màu chữ trên primary từ Theme
-
+    final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
     return ElevatedButton(
       onPressed: _saveTransaction,
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryColor,  // Dùng màu primary từ Theme
-        foregroundColor: onPrimaryColor,  // Dùng màu chữ trên primary từ Theme
+        foregroundColor: onPrimaryColor,
         padding: EdgeInsets.symmetric(vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -423,7 +367,7 @@ class _AddExpenseState extends State<AddExpense> {
           Icon(Icons.save),
           SizedBox(width: 12),
           Text(
-            "Lưu Giao Dịch",
+            "Lưu Chỉnh Sửa",
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -431,6 +375,63 @@ class _AddExpenseState extends State<AddExpense> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.onSurface,
+              secondary: AppColors.secondary,
+            ),
+            dialogBackgroundColor: Colors.white,
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+      });
+    }
+  }
+
+  void _saveTransaction() {
+    final updatedTransaction = UpdateTransactionModel(
+      id: widget.transaction["id"],
+      amount: int.parse(_amountController.text.replaceAll(',', '')),
+      note: _noteController.text,
+      categoryId: _categoryId!,
+      categoryType: _transactionType,
+      date: _selectedDate!,
+    );
+
+    context.read<TransactionProvider>().updateTransaction(updatedTransaction);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Cập nhật giao dịch thành công!'),
+        backgroundColor: Colors.green.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const HomeScreen()),
     );
   }
 }

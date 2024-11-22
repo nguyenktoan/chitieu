@@ -1,6 +1,8 @@
 import 'package:chitieu/helpers/db/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
 
+import '../models/transaction_model.dart';
+
 class TransactionDao {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
@@ -17,7 +19,7 @@ class TransactionDao {
   Future<List<Map<String, dynamic>>> fetchTransactions(Database db) async {
     return await db.rawQuery('''
       SELECT 
-        t.id, t.amount, t.note, t.date, 
+        t.id, t.amount, t.note, t.date, t.category_id,
         LOWER(c.category_type) AS category_type, 
         c.name AS category_name, 
         c.icon, c.color
@@ -101,6 +103,28 @@ class TransactionDao {
       whereArgs: [transactionId],
     );
   }
+  Future<UserTransaction?> getTransactionById(int id) async {
+    final db = await _databaseHelper.database;
+    final result = await db.rawQuery('''
+    SELECT 
+      t.id, t.amount, t.note, t.date, 
+      LOWER(c.category_type) AS category_type, 
+      c.name AS category_name, 
+      c.icon, c.color
+    FROM transactions t
+    INNER JOIN categories c ON t.category_id = c.id
+    WHERE t.id = ?
+  ''', [id]);
+
+    if (result.isNotEmpty) {
+      return UserTransaction.fromMap(result.first); // Chuyển Map thành UserTransaction
+    }
+    return null; // Trả về null nếu không tìm thấy
+  }
+
+
+
+
 
 
 }

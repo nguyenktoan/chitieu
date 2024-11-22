@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../helpers/db/dao/transaction_dao.dart';
 import '../../helpers/db/database_helper.dart';
-import 'package:chitieu/components/transaction_items/transaction_item.dart';
+import 'package:chitieu/components/transaction_item.dart';
 
 class AllTransactionsScreen extends StatefulWidget {
   const AllTransactionsScreen({super.key});

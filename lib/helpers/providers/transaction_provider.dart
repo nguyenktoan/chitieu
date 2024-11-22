@@ -16,21 +16,31 @@ class TransactionProvider extends ChangeNotifier {
 
   // Lấy tất cả giao dịch từ cơ sở dữ liệu và cập nhật danh sách giao dịch
   Future<void> fetchTransactions() async {
+    print("Fetching transactions...");  // Log when the method is called
+
     _isLoading = true;
     notifyListeners();
 
     final db = await DatabaseHelper().database;  // Lấy cơ sở dữ liệu
+    print("Database connection established.");
+
     final transactionData = await _transactionDao.fetchTransactions(db);  // Lấy danh sách giao dịch từ DAO
+    print("Transactions fetched from database: $transactionData");
 
     // Chuyển đổi danh sách giao dịch từ Map sang UserTransaction
     _transactions = transactionData
         .map((tx) => UserTransaction.fromMap(tx))  // Tạo UserTransaction từ Map
         .toList();
 
+    print("Transactions after conversion to UserTransaction: $_transactions");
+
     await calculateBalance();  // Tính toán số dư sau khi lấy giao dịch
+    print("Balance calculated.");
+
     _isLoading = false;
     notifyListeners();  // Cập nhật UI khi có thay đổi
   }
+
 
   // Tính toán tổng số dư, thu nhập và chi tiêu
   Future<void> calculateBalance() async {
@@ -94,4 +104,16 @@ class TransactionProvider extends ChangeNotifier {
     await _transactionDao.deleteTransaction(db, transactionId);  // Xóa giao dịch khỏi cơ sở dữ liệu
     await fetchTransactions();  // Cập nhật lại danh sách giao dịch sau khi xóa
   }
+  // Trong TransactionProvider
+  Future<UserTransaction?> fetchTransaction(int transactionId) async {
+    final db = await DatabaseHelper().database;
+
+    // Gọi DAO để lấy giao dịch theo ID
+    final transaction = await _transactionDao.getTransactionById(transactionId);
+
+    return transaction; // Trả về giao dịch đã tìm thấy (có thể null nếu không tồn tại)
+  }
+
+
+
 }
