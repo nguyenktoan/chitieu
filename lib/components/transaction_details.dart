@@ -23,10 +23,27 @@ class _TransactionDetailScreenState extends State<TransactionDetailScreen> {
 
   Future<void> _deleteTransaction(int? transactionId) async {
     if (transactionId == null) return;
+
+    // Xóa giao dịch
     await Provider.of<TransactionProvider>(context, listen: false)
         .deleteTransaction(transactionId);
+
+    // Hiển thị thông báo thành công
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Giao dịch đã xoá!'),
+        backgroundColor: Colors.red.shade400,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+
+    // Quay lại màn hình trước
     Navigator.pop(context, true);
   }
+
 
   Future<void> _reloadTransaction() async {
     await Provider.of<TransactionProvider>(context, listen: false).fetchTransactions();

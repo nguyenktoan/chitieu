@@ -1,13 +1,14 @@
-import 'package:chitieu/helpers/db/database_helper.dart';
 import 'package:sqflite/sqflite.dart';
-
-import '../models/transaction_model.dart';
+import 'package:flutter/material.dart';
+import '../database_helper.dart';
+import '../models/transaction_model.dart'; // Make sure to adjust the path
 
 class TransactionDao {
   final DatabaseHelper _databaseHelper = DatabaseHelper();
 
   // Thêm giao dịch vào bảng
-  Future<void> insertTransaction(Database db, Map<String, dynamic> transaction) async {
+  Future<void> insertTransaction(
+      Database db, Map<String, dynamic> transaction) async {
     await db.insert(
       'transactions',
       transaction,
@@ -15,8 +16,20 @@ class TransactionDao {
     );
   }
 
-  // Lấy tất cả giao dịch, sắp xếp theo ngày giảm dần
-  Future<List<Map<String, dynamic>>> fetchTransactions(Database db) async {
+  // Lấy tất cả giao dịch, sắp xếp theo ngày giảm dần với tùy chọn lọc theo ngày
+  Future<List<Map<String, dynamic>>> fetchTransactions(
+      Database db, {
+        DateTime? startDate,
+        DateTime? endDate,
+      }) async {
+    String whereClause = '';
+    List<dynamic> whereArgs = [];
+
+    if (startDate != null && endDate != null) {
+      whereClause = 'WHERE t.date BETWEEN ? AND ?';
+      whereArgs = [startDate.toIso8601String(), endDate.toIso8601String()];
+    }
+
     return await db.rawQuery('''
       SELECT 
         t.id, t.amount, t.note, t.date, t.category_id,
@@ -25,13 +38,14 @@ class TransactionDao {
         c.icon, c.color
       FROM transactions t
       INNER JOIN categories c ON t.category_id = c.id
-      ORDER BY t.date DESC  
-    ''');
+      $whereClause
+      ORDER BY t.date DESC
+    ''', whereArgs);
   }
 
   // Lấy 5 giao dịch gần nhất
   Future<List<Map<String, dynamic>>> fetchRecentTransactions(Database db) async {
-    return await db.rawQuery('''
+    return await db.rawQuery(''' 
       SELECT 
         t.id, t.amount, t.note, t.date, 
         LOWER(c.category_type) AS category_type, 
@@ -40,12 +54,13 @@ class TransactionDao {
       FROM transactions t
       INNER JOIN categories c ON t.category_id = c.id
       ORDER BY t.date DESC  
-      LIMIT 5  
+      LIMIT 5
     ''');
   }
 
   // Cập nhật giao dịch
-  Future<void> updateTransaction(Database db, Map<String, dynamic> transaction) async {
+  Future<void> updateTransaction(
+      Database db, Map<String, dynamic> transaction) async {
     await db.update(
       'transactions',
       transaction,
@@ -54,9 +69,9 @@ class TransactionDao {
     );
   }
 
-
   // Cập nhật giao dịch với dữ liệu cụ thể (số tiền và loại giao dịch)
-  Future<int> updateTransactionInDatabase(Database db, int transactionId, int amount, String type) async {
+  Future<int> updateTransactionInDatabase(
+      Database db, int transactionId, int amount, String type) async {
     return await db.update(
       'transactions',
       {'amount': amount, 'category_type': type.toLowerCase()},
@@ -93,8 +108,6 @@ class TransactionDao {
     };
   }
 
-
-
   // Xóa giao dịch
   Future<int> deleteTransaction(Database db, int transactionId) async {
     return await db.delete(
@@ -103,30 +116,23 @@ class TransactionDao {
       whereArgs: [transactionId],
     );
   }
+
   Future<UserTransaction?> getTransactionById(int id) async {
     final db = await _databaseHelper.database;
-    final result = await db.rawQuery('''
-    SELECT 
-      t.id, t.amount, t.note, t.date, 
-      LOWER(c.category_type) AS category_type, 
-      c.name AS category_name, 
-      c.icon, c.color
-    FROM transactions t
-    INNER JOIN categories c ON t.category_id = c.id
-    WHERE t.id = ?
-  ''', [id]);
+    final result = await db.rawQuery(''' 
+      SELECT 
+        t.id, t.amount, t.note, t.date, 
+        LOWER(c.category_type) AS category_type, 
+        c.name AS category_name, 
+        c.icon, c.color
+      FROM transactions t
+      INNER JOIN categories c ON t.category_id = c.id
+      WHERE t.id = ? 
+    ''', [id]);
 
     if (result.isNotEmpty) {
-      return UserTransaction.fromMap(result.first); // Chuyển Map thành UserTransaction
+      return UserTransaction.fromMap(result.first); // Convert Map to UserTransaction
     }
-    return null; // Trả về null nếu không tìm thấy
+    return null; // Return null if no transaction is found
   }
-
-
-
-
-
-
 }
-
-
