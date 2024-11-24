@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
+import 'package:provider/provider.dart';
+import 'package:pie_chart/pie_chart.dart';
 import '../../components/IncomeExpenseSummaryCard.dart';
 import '../../components/ParentCategoryList.dart';
 import '../../components/transaction_item.dart';
 import '../../helpers/providers/report_provider.dart';
+import '../../helpers/providers/transaction_provider.dart';
+import 'charts/pie_chart.dart';
 
 class StatScreen extends StatefulWidget {
   const StatScreen({super.key});
@@ -16,7 +19,7 @@ class StatScreen extends StatefulWidget {
 class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTimeRange? selectedDateRange;
-  DateTimeRange? selectedWeekRange; // Thêm biến này để lưu tuần đã chọn
+  DateTimeRange? selectedWeekRange;
   ValueNotifier<String> selectedCategoryType = ValueNotifier('expense');
   int _refreshKey = 0;
 
@@ -24,8 +27,17 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    Future.microtask(_fetchData);
+
+    // Lắng nghe thay đổi từ TransactionProvider
+    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final reportProvider = Provider.of<ReportProvider>(context, listen: false);
+    reportProvider.listenToTransactions(transactionProvider);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
   }
+
 
   @override
   void dispose() {
@@ -48,138 +60,160 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     setState(() => _refreshKey++);
   }
 
-  // Hàm tính tuần chứa ngày đã chọn
-  DateTimeRange _getWeekRange(DateTime selectedDate) {
-    DateTime startOfWeek = selectedDate.subtract(Duration(days: selectedDate.weekday - DateTime.monday));
-    DateTime endOfWeek = startOfWeek.add(const Duration(days: 6)); // Chủ Nhật
-
-    return DateTimeRange(start: startOfWeek, end: endOfWeek);
-  }
-
-  // Hàm chọn tuần: hiển thị lịch của tháng hiện tại
-  Future<void> _selectWeekRange(BuildContext context) async {
-    DateTime? selectedDay = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2100),
-    );
-
-    if (selectedDay != null) {
-      // Lấy phạm vi tuần từ ngày đã chọn
-      DateTimeRange selectedWeek = _getWeekRange(selectedDay);
-
-      setState(() {
-        selectedWeekRange = selectedWeek;
-      });
-
-      await _fetchData();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context).colorScheme;
-    final reportProvider = Provider.of<ReportProvider>(context);
 
-    if (reportProvider.isLoading) return const Center(child: CircularProgressIndicator());
+    return Consumer<ReportProvider>(
+      builder: (context, reportProvider, child) {
+        if (reportProvider.isLoading) {
+          return Center(
+            child: CircularProgressIndicator(
+              color: theme.primary,
+              backgroundColor: theme.primary.withOpacity(0.2),
+            ),
+          );
+        }
 
-    // Cập nhật logic hiển thị ngày tháng năm tùy thuộc vào chọn tháng hay tuần
-    String dateRangeText = '';
-    if (selectedWeekRange != null) {
-      // Nếu đã chọn tuần, hiển thị ngày bắt đầu và kết thúc tuần
-      dateRangeText = "${selectedWeekRange!.start.day}/${selectedWeekRange!.start.month}/${selectedWeekRange!.start.year} - "
-          "${selectedWeekRange!.end.day}/${selectedWeekRange!.end.month}/${selectedWeekRange!.end.year}";
-    } else if (selectedDateRange != null) {
-      // Nếu đã chọn tháng, hiển thị tháng và năm
-      dateRangeText = "${selectedDateRange!.start.month}/${selectedDateRange!.start.year} - "
-          "${selectedDateRange!.end.month}/${selectedDateRange!.end.year}";
-    } else {
-      // Nếu chưa chọn gì, hiển thị tháng hiện tại
-      DateTime now = DateTime.now();
-      dateRangeText = "${now.month}/${now.year}";
-    }
+        String dateRangeText = _getFormattedDateRange();
 
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        return SafeArea(
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.surface,
+                  Colors.white,
+                ],
+              ),
+            ),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDateRangeSelector(theme, dateRangeText),
+                    const SizedBox(height: 16),
+                    IncomeExpenseSummaryCard(
+                      income: reportProvider.income,
+                      expense: reportProvider.expense,
+                      balance: reportProvider.balance,
+                      theme: theme,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildCategoryTypeSelector(theme),
+                    const SizedBox(height: 24),
+                    _buildPieChartSection(reportProvider, theme),
+                    const SizedBox(height: 24),
+                    _buildTabSection(reportProvider, theme),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDateRangeSelector(ColorScheme theme, String dateRangeText) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: theme.primary.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            dateRangeText,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: theme.onSurface,
+            ),
+          ),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.calendar_today, color: theme.primary),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            offset: const Offset(0, 40),
+            itemBuilder: (BuildContext context) => [
+              PopupMenuItem(
+                value: 'month',
+                child: Row(
+                  children: [
+                    Icon(Icons.calendar_month, color: theme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('Chọn tháng'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'week',
+                child: Row(
+                  children: [
+                    Icon(Icons.view_week, color: theme.primary, size: 20),
+                    const SizedBox(width: 8),
+                    const Text('Chọn tuần'),
+                  ],
+                ),
+              ),
+            ],
+            onSelected: (value) {
+              if (value == 'month') {
+                _selectDateRange(context);
+              } else {
+                _selectWeekRange(context);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategoryTypeSelector(ColorScheme theme) {
+    return ValueListenableBuilder<String>(
+      valueListenable: selectedCategoryType,
+      builder: (context, value, child) => Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 2))
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(dateRangeText, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.onSurface)),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.calendar_today, color: theme.primary),
-                    onSelected: (value) {
-                      if (value == 'month') {
-                        _selectDateRange(context);  // Chọn tháng
-                      } else {
-                        _selectWeekRange(context);  // Chọn tuần
-                      }
-                    },
-                    itemBuilder: (BuildContext context) {
-                      return {'month', 'week'}.map((String choice) {
-                        return PopupMenuItem<String>(
-                          value: choice,
-                          child: Text(choice == 'month' ? 'Chọn tháng' : 'Chọn tuần'),
-                        );
-                      }).toList();
-                    },
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            IncomeExpenseSummaryCard(income: reportProvider.income, expense: reportProvider.expense, balance: reportProvider.balance, theme: theme),
-            const SizedBox(height: 20),
-            ValueListenableBuilder<String>(
-              valueListenable: selectedCategoryType,
-              builder: (context, value, child) => Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: value == 'expense' ? theme.primary : theme.surface),
-                    onPressed: () {
-                      selectedCategoryType.value = 'expense';
-                      _fetchData();
-                    },
-                    child: Text('Chi tiêu', style: TextStyle(color: value == 'expense' ? Colors.white : theme.onSurface)),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: value == 'income' ? theme.primary : theme.surface),
-                    onPressed: () {
-                      selectedCategoryType.value = 'income';
-                      _fetchData();
-                    },
-                    child: Text('Thu nhập', style: TextStyle(color: value == 'income' ? Colors.white : theme.onSurface)),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            TabBar(controller: _tabController, tabs: const [Tab(text: 'Tất cả'), Tab(text: 'Danh mục')]),
             Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: [
-                  ListView.builder(itemCount: reportProvider.transactions.length, itemBuilder: (context, index) => TransactionItem(transaction: reportProvider.transactions[index].toMap())),
-                  _buildParentCategoryList(),
-                ],
+              child: _buildCategoryButton(
+                'Chi tiêu',
+                value == 'expense',
+                    () {
+                  selectedCategoryType.value = 'expense';
+                  _fetchData();
+                },
+                theme,
+              ),
+            ),
+            Expanded(
+              child: _buildCategoryButton(
+                'Thu nhập',
+                value == 'income',
+                    () {
+                  selectedCategoryType.value = 'income';
+                  _fetchData();
+                },
+                theme,
               ),
             ),
           ],
@@ -188,12 +222,145 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildParentCategoryList() {
-    final reportProvider = Provider.of<ReportProvider>(context);
-    return ParentCategoryList(categoryAmounts: Future.value(reportProvider.categoryAmounts));
+  Widget _buildCategoryButton(String text, bool isSelected, VoidCallback onPressed, ColorScheme theme) {
+    return Padding(
+      padding: const EdgeInsets.all(4),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isSelected ? theme.primary : Colors.white,
+          foregroundColor: isSelected ? Colors.white : theme.onSurface,
+          elevation: isSelected ? 4 : 0,
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: onPressed,
+        child: Text(
+          text,
+          style: TextStyle(
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
   }
 
-  // Hàm chọn tháng thay vì ngày
+  Widget _buildPieChartSection(ReportProvider reportProvider, ColorScheme theme) {
+    final categoryAmounts = reportProvider.categoryAmounts;
+    if (categoryAmounts.isEmpty) {
+      return Center(
+        child: Column(
+          children: [
+            Icon(Icons.pie_chart_outline, size: 48, color: theme.outline),
+            const SizedBox(height: 8),
+            Text(
+              "Không có dữ liệu",
+              style: TextStyle(color: theme.outline, fontSize: 16),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Map<String, double> dataMap = {};
+    categoryAmounts.forEach((key, value) {
+      dataMap[key] = value['total_amount']?.toDouble() ?? 0.0;
+    });
+
+    List<Color> colorList = [
+      theme.primary,
+      theme.secondary,
+      theme.tertiary,
+      theme.primary.withOpacity(0.7),
+      theme.secondary.withOpacity(0.7),
+      theme.tertiary.withOpacity(0.7),
+    ];
+
+    return PieChartSection(
+      dataMap: dataMap,
+      centerText: selectedCategoryType.value == 'expense' ? 'Chi tiêu' : 'Thu nhập',
+      colorList: colorList,
+    );
+  }
+
+  Widget _buildTabSection(ReportProvider reportProvider, ColorScheme theme) {
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: theme.primary.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: TabBar(
+            controller: _tabController,
+            labelColor: theme.primary,
+            unselectedLabelColor: theme.outline,
+            indicatorColor: theme.primary,
+            indicatorSize: TabBarIndicatorSize.label,
+            tabs: const [
+              Tab(text: 'Tất cả'),
+              Tab(text: 'Danh mục'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: MediaQuery.of(context).size.height * 0.35,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildTransactionsList(reportProvider),
+              _buildParentCategoryList(),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTransactionsList(ReportProvider reportProvider) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: reportProvider.transactions.length,
+        itemBuilder: (context, index) => TransactionItem(
+          transaction: reportProvider.transactions[index].toMap(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildParentCategoryList() {
+    final reportProvider = Provider.of<ReportProvider>(context);
+    return ParentCategoryList(
+      categoryAmounts: Future.value(reportProvider.categoryAmounts),
+    );
+  }
+
+  String _getFormattedDateRange() {
+    if (selectedWeekRange != null) {
+      return "${selectedWeekRange!.start.day}/${selectedWeekRange!.start.month} - "
+          "${selectedWeekRange!.end.day}/${selectedWeekRange!.end.month}/${selectedWeekRange!.end.year}";
+    } else if (selectedDateRange != null) {
+      return "Tháng ${selectedDateRange!.start.month}/${selectedDateRange!.start.year}";
+    } else {
+      DateTime now = DateTime.now();
+      return "Tháng ${now.month}/${now.year}";
+    }
+  }
+
   Future<void> _selectDateRange(BuildContext context) async {
     DateTime? picked = await showMonthPicker(
       context: context,
@@ -206,8 +373,31 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
       setState(() {
         selectedDateRange = DateTimeRange(
           start: picked,
-          end: DateTime(picked.year, picked.month + 1, 0).subtract(const Duration(days: 1)),  // Chỉnh lại ngày cuối cùng trong tháng
+          end: DateTime(picked.year, picked.month + 1, 0).subtract(const Duration(days: 1)),
         );
+      });
+      await _fetchData();
+    }
+  }
+
+  DateTimeRange _getWeekRange(DateTime selectedDate) {
+    DateTime startOfWeek = selectedDate.subtract(Duration(days: selectedDate.weekday - DateTime.monday));
+    DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
+    return DateTimeRange(start: startOfWeek, end: endOfWeek);
+  }
+
+  Future<void> _selectWeekRange(BuildContext context) async {
+    DateTime? selectedDay = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+    );
+
+    if (selectedDay != null) {
+      DateTimeRange selectedWeek = _getWeekRange(selectedDay);
+      setState(() {
+        selectedWeekRange = selectedWeek;
       });
       await _fetchData();
     }

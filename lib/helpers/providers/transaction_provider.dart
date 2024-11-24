@@ -1,48 +1,43 @@
-import 'package:chitieu/helpers/db/database_helper.dart';
-import 'package:chitieu/helpers/db/models/transaction_model.dart';  // Import UserTransaction model
-import 'package:chitieu/helpers/db/models/update_transaction.dart';
 import 'package:flutter/material.dart';
-
+import '../db/database_helper.dart';
 import '../db/dao/transaction_dao.dart';
+import '../db/models/transaction_model.dart';
 import '../db/models/insert_transaction_model.dart';
+import '../db/models/update_transaction.dart';
 
 class TransactionProvider extends ChangeNotifier {
-  final TransactionDao _transactionDao = TransactionDao();  // DAO để giao tiếp với cơ sở dữ liệu
-  List<UserTransaction> _transactions = [];  // Danh sách các giao dịch
-  int _totalBalance = 0;  // Tổng số dư
-  int _income = 0;  // Tổng thu nhập
-  int _expense = 0;  // Tổng chi tiêu
-  bool _isLoading = false;  // Trạng thái tải
+  final TransactionDao _transactionDao = TransactionDao();
+  List<UserTransaction> _transactions = [];
+  int _totalBalance = 0;
+  int _income = 0;
+  int _expense = 0;
+  bool _isLoading = false;
 
-  // Lấy tất cả giao dịch từ cơ sở dữ liệu và cập nhật danh sách giao dịch
+  // Getters
+  List<UserTransaction> get transactions => _transactions;
+  int get totalBalance => _totalBalance;
+  int get income => _income;
+  int get expense => _expense;
+  bool get isLoading => _isLoading;
+
+  // Fetch all transactions
   Future<void> fetchTransactions() async {
-    print("Fetching transactions...");  // Log when the method is called
-
     _isLoading = true;
     notifyListeners();
 
-    final db = await DatabaseHelper().database;  // Lấy cơ sở dữ liệu
-    print("Database connection established.");
+    final db = await DatabaseHelper().database;
+    final transactionData = await _transactionDao.fetchTransactions(db);
 
-    final transactionData = await _transactionDao.fetchTransactions(db);  // Lấy danh sách giao dịch từ DAO
-    print("Transactions fetched from database: $transactionData");
-
-    // Chuyển đổi danh sách giao dịch từ Map sang UserTransaction
     _transactions = transactionData
-        .map((tx) => UserTransaction.fromMap(tx))  // Tạo UserTransaction từ Map
+        .map((tx) => UserTransaction.fromMap(tx))
         .toList();
 
-    print("Transactions after conversion to UserTransaction: $_transactions");
-
-    await calculateBalance();  // Tính toán số dư sau khi lấy giao dịch
-    print("Balance calculated.");
-
+    await calculateBalance();
     _isLoading = false;
-    notifyListeners();  // Cập nhật UI khi có thay đổi
+    notifyListeners();
   }
 
-
-  // Tính toán tổng số dư, thu nhập và chi tiêu
+  // Calculate balance, income, and expense
   Future<void> calculateBalance() async {
     _income = 0;
     _expense = 0;
@@ -50,70 +45,40 @@ class TransactionProvider extends ChangeNotifier {
 
     for (var transaction in _transactions) {
       if (transaction.categoryType == 'income') {
-        _income += transaction.amount;  // Cộng thu nhập
+        _income += transaction.amount;
       } else if (transaction.categoryType == 'expense') {
-        _expense += transaction.amount;  // Cộng chi tiêu
+        _expense += transaction.amount;
       }
     }
 
-    _totalBalance = _income - _expense;  // Tổng số dư = Thu nhập - Chi tiêu
-    notifyListeners();  // Cập nhật UI
+    _totalBalance = _income - _expense;
+    notifyListeners();
   }
 
-  // Trả về danh sách giao dịch
-  List<UserTransaction> get transactions => _transactions;
-
-  // Trả về tổng số dư
-  int get totalBalance => _totalBalance;
-
-  // Trả về thu nhập
-  int get income => _income;
-
-  // Trả về chi tiêu
-  int get expense => _expense;
-
-  // Trả về trạng thái tải (loading)
-  bool get isLoading => _isLoading;
-
-  // Thêm một giao dịch mới vào cơ sở dữ liệu
+  // Add a new transaction
   Future<void> addTransaction(InsertTransactionModel transaction) async {
     final db = await DatabaseHelper().database;
-
-    // Thêm giao dịch vào cơ sở dữ liệu
     await _transactionDao.insertTransaction(db, transaction.toMap());
-    // Sau khi thêm, lấy lại danh sách giao dịch để cập nhật UI
     await fetchTransactions();
   }
 
-  // Cập nhật giao dịch
-// Cập nhật giao dịch trong TransactionProvider
+  // Update an existing transaction
   Future<void> updateTransaction(UpdateTransactionModel updatedTransaction) async {
     final db = await DatabaseHelper().database;
-
-    // Cập nhật giao dịch trong cơ sở dữ liệu
     await _transactionDao.updateTransaction(db, updatedTransaction.toMap());
-
-    // Sau khi cập nhật giao dịch, tải lại danh sách giao dịch
     await fetchTransactions();
   }
 
-
-  // Xóa giao dịch
+  // Delete a transaction
   Future<void> deleteTransaction(int transactionId) async {
-    final db = await DatabaseHelper().database;  // Lấy cơ sở dữ liệu
-    await _transactionDao.deleteTransaction(db, transactionId);  // Xóa giao dịch khỏi cơ sở dữ liệu
-    await fetchTransactions();  // Cập nhật lại danh sách giao dịch sau khi xóa
+    final db = await DatabaseHelper().database;
+    await _transactionDao.deleteTransaction(db, transactionId);
+    await fetchTransactions();
   }
-  // Trong TransactionProvider
+
+  // Fetch a single transaction by ID
   Future<UserTransaction?> fetchTransaction(int transactionId) async {
     final db = await DatabaseHelper().database;
-
-    // Gọi DAO để lấy giao dịch theo ID
-    final transaction = await _transactionDao.getTransactionById(transactionId);
-
-    return transaction; // Trả về giao dịch đã tìm thấy (có thể null nếu không tồn tại)
+    return await _transactionDao.getTransactionById(transactionId);
   }
-
-
-
 }

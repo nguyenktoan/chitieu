@@ -2,50 +2,58 @@ import 'package:flutter/material.dart';
 import '../db/dao/report_dao.dart';
 import '../db/database_helper.dart';
 import '../db/models/transaction_model.dart';
+import 'transaction_provider.dart';
 
 class ReportProvider with ChangeNotifier {
   final ReportDao _reportDao = ReportDao();
-  List<UserTransaction> _transactions = []; // Danh sách các giao dịch
+  List<UserTransaction> _transactions = [];
   Map<String, Map<String, dynamic>> _categoryData = {};
-  Map<String, Map<String, dynamic>> get categoryData => _categoryData;
-
-  // Biến để lưu trữ tổng thu nhập, chi phí và số dư
   int _income = 0;
   int _expense = 0;
   int _balance = 0;
-
-  // Trạng thái đang tải
   bool _isLoading = false;
-
-  // Biến cho phần trăm của các danh mục
   Map<String, double> _categoryPercentages = {};
-
-  // Biến cho số tiền của các danh mục
   Map<String, Map<String, dynamic>> _categoryAmounts = {};
 
   // Getters
+  Map<String, Map<String, dynamic>> get categoryData => _categoryData;
   int get income => _income;
   int get expense => _expense;
   int get balance => _balance;
-  bool get isLoading => _isLoading; // Getter cho trạng thái tải
-  Map<String, double> get categoryPercentages => _categoryPercentages; // Getter cho phần trăm các danh mục
-  Map<String, Map<String, dynamic>> get categoryAmounts => _categoryAmounts; // Getter cho số tiền các danh mục
-  List<UserTransaction> get transactions => _transactions; // Getter cho danh sách giao dịch
+  bool get isLoading => _isLoading;
+  Map<String, double> get categoryPercentages => _categoryPercentages;
+  Map<String, Map<String, dynamic>> get categoryAmounts => _categoryAmounts;
+  List<UserTransaction> get transactions => _transactions;
 
-  // Set trạng thái đang tải
+  // Set loading state
   void _setLoading(bool isLoading) {
     _isLoading = isLoading;
-    notifyListeners(); // Thông báo UI cập nhật trạng thái
+    notifyListeners();
   }
 
-  // Fetch và tính toán số dư, thu nhập và chi phí
+  // Listen to changes from TransactionProvider
+  void listenToTransactions(TransactionProvider transactionProvider) {
+    transactionProvider.addListener(() {
+      _updateReportData(transactionProvider.transactions);
+    });
+  }
+
+  // Update report data when transactions change
+  void _updateReportData(List<UserTransaction> transactions) async {
+    _transactions = transactions;
+    await fetchFilteredBalance();
+    await fetchCategoryPercentages();
+    await fetchCategoryAmount();
+  }
+
+  // Fetch and calculate balance, income, and expense
   Future<void> fetchFilteredBalance({
     String? categoryName,
     String? categoryType,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    _setLoading(true); // Đánh dấu trạng thái đang tải
+    _setLoading(true);
     try {
       final balanceData = await _reportDao.calculateFilteredBalance(
         categoryName: categoryName,
@@ -58,19 +66,19 @@ class ReportProvider with ChangeNotifier {
       _expense = balanceData['expense'] ?? 0;
       _balance = balanceData['balance'] ?? 0;
 
-      notifyListeners(); // Cập nhật UI
+      notifyListeners();
     } finally {
-      _setLoading(false); // Kết thúc trạng thái tải
+      _setLoading(false);
     }
   }
 
-  // Fetch phần trăm của các danh mục
+  // Fetch category percentages
   Future<void> fetchCategoryPercentages({
     String? categoryType,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    _setLoading(true); // Đánh dấu trạng thái đang tải
+    _setLoading(true);
     try {
       _categoryPercentages = await _reportDao.calculateCategoryPercentage(
         categoryType: categoryType,
@@ -78,19 +86,19 @@ class ReportProvider with ChangeNotifier {
         endDate: endDate,
       );
 
-      notifyListeners(); // Cập nhật UI
+      notifyListeners();
     } finally {
-      _setLoading(false); // Kết thúc trạng thái tải
+      _setLoading(false);
     }
   }
 
-  // Fetch số tiền của các danh mục
+  // Fetch category amounts
   Future<void> fetchCategoryAmount({
     String? categoryType,
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    _setLoading(true); // Đánh dấu trạng thái đang tải
+    _setLoading(true);
     try {
       final result = await _reportDao.calculateCategoryAmount(
         categoryType: categoryType,
@@ -99,50 +107,49 @@ class ReportProvider with ChangeNotifier {
       );
 
       if (result.isNotEmpty) {
-        _categoryAmounts = result; // Cập nhật số tiền các danh mục
+        _categoryAmounts = result;
       } else {
-        _categoryAmounts.clear(); // Nếu không có dữ liệu, làm trống
+        _categoryAmounts.clear();
       }
 
-      notifyListeners(); // Cập nhật UI
+      notifyListeners();
     } finally {
-      _setLoading(false); // Kết thúc trạng thái tải
+      _setLoading(false);
     }
     print("CategoryAmounts: $_categoryAmounts");
   }
 
-  // Fetch growth (tăng trưởng) thu nhập và chi phí cho kỳ hiện tại và kỳ trước
+  // Fetch growth data
   Future<void> fetchGrowth({
-    required String periodType, // "month" hoặc "week"
+    required String periodType,
     required DateTime currentPeriod,
   }) async {
-    _setLoading(true); // Đánh dấu trạng thái đang tải
+    _setLoading(true);
     try {
       final growthData = await _reportDao.calculateGrowth(
         periodType: periodType,
         currentPeriod: currentPeriod,
       );
 
-      // Cập nhật dữ liệu tăng trưởng (growth)
       _income += growthData['incomeGrowth'] ?? 0;
       _expense += growthData['expenseGrowth'] ?? 0;
       _balance = _income - _expense;
 
-      notifyListeners(); // Cập nhật UI
+      notifyListeners();
     } finally {
-      _setLoading(false); // Kết thúc trạng thái tải
+      _setLoading(false);
     }
   }
 
-  // Lấy giao dịch từ cơ sở dữ liệu
+  // Fetch transactions
   Future<void> getTransactions({
     DateTime? startDate,
     DateTime? endDate,
     required String categoryType,
   }) async {
-    _setLoading(true); // Đánh dấu trạng thái đang tải
+    _setLoading(true);
     try {
-      final db = await DatabaseHelper().database; // Lấy cơ sở dữ liệu
+      final db = await DatabaseHelper().database;
       final transactionData = await _reportDao.getTransactions(
         db,
         startDate: startDate,
@@ -150,14 +157,13 @@ class ReportProvider with ChangeNotifier {
         categoryType: categoryType,
       );
 
-      // Chuyển đổi danh sách giao dịch từ Map sang UserTransaction
       _transactions = transactionData
-          .map((tx) => UserTransaction.fromMap(tx)) // Tạo UserTransaction từ Map
+          .map((tx) => UserTransaction.fromMap(tx))
           .toList();
 
-      notifyListeners(); // Cập nhật UI
+      notifyListeners();
     } finally {
-      _setLoading(false); // Kết thúc trạng thái tải
+      _setLoading(false);
     }
   }
 }

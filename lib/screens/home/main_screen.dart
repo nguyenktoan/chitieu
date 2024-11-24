@@ -18,10 +18,10 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
 
-    // Load transactions when the screen is initialized
+    // Tải giao dịch khi màn hình được khởi tạo
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final transactionProvider =
-          Provider.of<TransactionProvider>(context, listen: false);
+      Provider.of<TransactionProvider>(context, listen: false);
       await transactionProvider.fetchTransactions();
     });
   }
@@ -42,17 +42,17 @@ class _MainScreenState extends State<MainScreen> {
                   transactionProvider.isLoading
                       ? _buildLoadingBalanceCard()
                       : BalanceCard(
-                          totalBalance: transactionProvider.totalBalance,
-                          income: transactionProvider.income,
-                          expense: transactionProvider.expense,
-                        ),
+                    totalBalance: transactionProvider.totalBalance,
+                    income: transactionProvider.income,
+                    expense: transactionProvider.expense,
+                  ),
                   const SizedBox(height: 20),
                   _buildTransactionsHeader(context),
                   const SizedBox(height: 10),
                   transactionProvider.isLoading
                       ? _buildTransactionsLoading()
                       : _buildRecentTransactionsList(
-                          transactionProvider.transactions),
+                      transactionProvider.transactions),
                 ],
               ),
             );
@@ -95,14 +95,14 @@ class _MainScreenState extends State<MainScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Welcome!",
+                  "Chào bạn!",
                   style: TextStyle(
                     fontSize: 14,
                     color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
                 Text(
-                  "Hứa Tuấn Vĩ", // Replace with dynamic user name if needed
+                  "Hứa Tuấn Vĩ", // Thay bằng tên người dùng động nếu cần
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -142,7 +142,7 @@ class _MainScreenState extends State<MainScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          'Recent Transactions',
+          'Giao dịch gần đây',
           style: Theme.of(context).textTheme.titleLarge,
         ),
         TextButton(
@@ -153,7 +153,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
             );
           },
-          child: const Text('View All'),
+          child: const Text('Xem tất cả'),
         ),
       ],
     );
@@ -166,13 +166,11 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildRecentTransactionsList(List<UserTransaction> transactions) {
-    final limitedTransactions = transactions.take(5).toList();
-
     return Expanded(
       child: ListView.builder(
-        itemCount: limitedTransactions.length,
+        itemCount: transactions.take(5).toList().length,
         itemBuilder: (context, index) {
-          final transaction = limitedTransactions[index];
+          final transaction = transactions[index];
           return TransactionItem(transaction: transaction.toMap());
         },
       ),
