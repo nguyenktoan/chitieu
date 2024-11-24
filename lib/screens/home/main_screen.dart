@@ -21,7 +21,7 @@ class _MainScreenState extends State<MainScreen> {
     // Load transactions when the screen is initialized
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final transactionProvider =
-      Provider.of<TransactionProvider>(context, listen: false);
+          Provider.of<TransactionProvider>(context, listen: false);
       await transactionProvider.fetchTransactions();
     });
   }
@@ -42,17 +42,17 @@ class _MainScreenState extends State<MainScreen> {
                   transactionProvider.isLoading
                       ? _buildLoadingBalanceCard()
                       : BalanceCard(
-                    totalBalance: transactionProvider.totalBalance,
-                    income: transactionProvider.income,
-                    expense: transactionProvider.expense,
-                  ),
+                          totalBalance: transactionProvider.totalBalance,
+                          income: transactionProvider.income,
+                          expense: transactionProvider.expense,
+                        ),
                   const SizedBox(height: 20),
                   _buildTransactionsHeader(context),
                   const SizedBox(height: 10),
                   transactionProvider.isLoading
                       ? _buildTransactionsLoading()
                       : _buildRecentTransactionsList(
-                      transactionProvider.transactions),
+                          transactionProvider.transactions),
                 ],
               ),
             );

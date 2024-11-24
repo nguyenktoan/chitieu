@@ -1,4 +1,5 @@
 import 'package:chitieu/helpers/providers/category_provider.dart';
+import 'package:chitieu/helpers/providers/report_provider.dart';
 import 'package:chitieu/helpers/providers/transaction_provider.dart';
 import 'package:chitieu/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
@@ -14,7 +15,9 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => TransactionProvider()),
-        ChangeNotifierProvider(create: (context) => CategoryProvider()), // Add CategoryProvider
+        ChangeNotifierProvider(create: (context) => CategoryProvider()),
+        ChangeNotifierProvider(create: (context) => ReportProvider()),
+// Add CategoryProvider
       ],
 
       child: MaterialApp(
