@@ -16,10 +16,15 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (context) => TransactionProvider()),
         ChangeNotifierProvider(create: (context) => CategoryProvider()),
-        ChangeNotifierProvider(create: (context) => ReportProvider()),
-// Add CategoryProvider
+        ChangeNotifierProvider(
+          create: (context) {
+            final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+            final reportProvider = ReportProvider();
+            reportProvider.listenToTransactions(transactionProvider); // Kết nối TransactionProvider
+            return reportProvider;
+          },
+        ),
       ],
-
       child: MaterialApp(
         title: 'Chi Tiêu',
         theme: ThemeData(

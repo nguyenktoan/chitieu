@@ -146,7 +146,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
         onChanged: _filterTransactions,
         decoration: const InputDecoration(
           hintText: 'Tìm kiếm giao dịch...',
-          prefixIcon: Icon(Icons.search, color: Colors.deepPurple),
+          prefixIcon: Icon(Icons.search, color: Colors.lightBlue),
           border: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 15),
         ),
@@ -176,7 +176,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
               },
               label: Text(type['label']!),
               backgroundColor: Colors.white,
-              selectedColor: Colors.deepPurple,
+              selectedColor: Colors.lightBlue,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : Colors.black,
                 fontWeight: FontWeight.bold,
@@ -206,7 +206,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
                 DateFormat('MM/yyyy').format(DateTime.parse('$month-01')),
               ),
               backgroundColor: Colors.white,
-              selectedColor: Colors.deepPurple,
+              selectedColor: Colors.lightBlue,
               labelStyle: TextStyle(
                 color: isSelected ? Colors.white : Colors.black,
                 fontWeight: FontWeight.bold,
@@ -222,7 +222,7 @@ class _AllTransactionsScreenState extends State<AllTransactionsScreen> {
     if (_isLoading) {
       return const SliverFillRemaining(
         child: Center(
-          child: CircularProgressIndicator(color: Colors.deepPurple),
+          child: CircularProgressIndicator(color: Colors.lightBlue),
         ),
       );
     }
