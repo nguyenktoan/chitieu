@@ -6,6 +6,8 @@ import '../db/models/transaction_model.dart';
 class ReportProvider with ChangeNotifier {
   final ReportDao _reportDao = ReportDao();
   List<UserTransaction> _transactions = []; // Danh sách các giao dịch
+  Map<String, Map<String, dynamic>> _categoryData = {};
+  Map<String, Map<String, dynamic>> get categoryData => _categoryData;
 
   // Biến để lưu trữ tổng thu nhập, chi phí và số dư
   int _income = 0;
@@ -30,6 +32,12 @@ class ReportProvider with ChangeNotifier {
   Map<String, Map<String, dynamic>> get categoryAmounts => _categoryAmounts; // Getter cho số tiền các danh mục
   List<UserTransaction> get transactions => _transactions; // Getter cho danh sách giao dịch
 
+  // Set trạng thái đang tải
+  void _setLoading(bool isLoading) {
+    _isLoading = isLoading;
+    notifyListeners(); // Thông báo UI cập nhật trạng thái
+  }
+
   // Fetch và tính toán số dư, thu nhập và chi phí
   Future<void> fetchFilteredBalance({
     String? categoryName,
@@ -49,6 +57,8 @@ class ReportProvider with ChangeNotifier {
       _income = balanceData['income'] ?? 0;
       _expense = balanceData['expense'] ?? 0;
       _balance = balanceData['balance'] ?? 0;
+
+      notifyListeners(); // Cập nhật UI
     } finally {
       _setLoading(false); // Kết thúc trạng thái tải
     }
@@ -67,6 +77,8 @@ class ReportProvider with ChangeNotifier {
         startDate: startDate,
         endDate: endDate,
       );
+
+      notifyListeners(); // Cập nhật UI
     } finally {
       _setLoading(false); // Kết thúc trạng thái tải
     }
@@ -80,20 +92,23 @@ class ReportProvider with ChangeNotifier {
   }) async {
     _setLoading(true); // Đánh dấu trạng thái đang tải
     try {
-      _categoryAmounts = await _reportDao.calculateCategoryAmount(
+      final result = await _reportDao.calculateCategoryAmount(
         categoryType: categoryType,
         startDate: startDate,
         endDate: endDate,
       );
+
+      if (result.isNotEmpty) {
+        _categoryAmounts = result; // Cập nhật số tiền các danh mục
+      } else {
+        _categoryAmounts.clear(); // Nếu không có dữ liệu, làm trống
+      }
+
+      notifyListeners(); // Cập nhật UI
     } finally {
       _setLoading(false); // Kết thúc trạng thái tải
     }
-  }
-
-  // Set trạng thái đang tải
-  void _setLoading(bool isLoading) {
-    _isLoading = isLoading;
-    notifyListeners(); // Thông báo để UI cập nhật trạng thái
+    print("CategoryAmounts: $_categoryAmounts");
   }
 
   // Fetch growth (tăng trưởng) thu nhập và chi phí cho kỳ hiện tại và kỳ trước
@@ -112,6 +127,8 @@ class ReportProvider with ChangeNotifier {
       _income += growthData['incomeGrowth'] ?? 0;
       _expense += growthData['expenseGrowth'] ?? 0;
       _balance = _income - _expense;
+
+      notifyListeners(); // Cập nhật UI
     } finally {
       _setLoading(false); // Kết thúc trạng thái tải
     }
@@ -124,20 +141,23 @@ class ReportProvider with ChangeNotifier {
     required String categoryType,
   }) async {
     _setLoading(true); // Đánh dấu trạng thái đang tải
-    final db = await DatabaseHelper().database; // Lấy cơ sở dữ liệu
+    try {
+      final db = await DatabaseHelper().database; // Lấy cơ sở dữ liệu
+      final transactionData = await _reportDao.getTransactions(
+        db,
+        startDate: startDate,
+        endDate: endDate,
+        categoryType: categoryType,
+      );
 
-    final transactionData = await _reportDao.getTransactions(
-      db,
-      startDate: startDate,
-      endDate: endDate,
-      categoryType: categoryType,
-    );
+      // Chuyển đổi danh sách giao dịch từ Map sang UserTransaction
+      _transactions = transactionData
+          .map((tx) => UserTransaction.fromMap(tx)) // Tạo UserTransaction từ Map
+          .toList();
 
-    // Chuyển đổi danh sách giao dịch từ Map sang UserTransaction
-    _transactions = transactionData
-        .map((tx) => UserTransaction.fromMap(tx)) // Tạo UserTransaction từ Map
-        .toList();
-
-    _setLoading(false); // Kết thúc trạng thái tải
+      notifyListeners(); // Cập nhật UI
+    } finally {
+      _setLoading(false); // Kết thúc trạng thái tải
+    }
   }
 }

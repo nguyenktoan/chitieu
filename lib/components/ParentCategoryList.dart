@@ -14,9 +14,38 @@ class ParentCategoryList extends StatelessWidget {
     );
     return formatCurrency.format(amount);
   }
+  Color resolveColor(String? colorString) {
+    try {
+      return Color(int.parse(colorString ?? "0xFF888888"));
+    } catch (_) {
+      return Colors.grey;
+    }
+  }
+
+  // Bản đồ icon
+  final Map<String, IconData> iconMap = const {
+    "attach_money": Icons.attach_money,
+    "card_giftcard": Icons.card_giftcard,
+    "business_center": Icons.business_center,
+    "redeem": Icons.redeem,
+    "restaurant": Icons.restaurant,
+    "directions_car": Icons.directions_car,
+    "shopping_cart": Icons.shopping_cart,
+    "receipt": Icons.receipt,
+    "theaters": Icons.theaters,
+    "home": Icons.home,
+    "shopping_bag": Icons.shopping_bag,
+  };
+
+  // Hàm lấy IconData từ tên icon
+  IconData getIcon(String iconName) {
+    return iconMap[iconName] ?? Icons.help; // Trả về Icon mặc định nếu không tìm thấy
+  }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context).colorScheme;
+
     return FutureBuilder<Map<String, Map<String, dynamic>>>(
       future: categoryAmounts,
       builder: (context, snapshot) {
@@ -34,10 +63,16 @@ class ParentCategoryList extends StatelessWidget {
           itemCount: categories.length,
           itemBuilder: (context, index) {
             final category = categories.values.toList()[index];
-            final categoryName = category["category_name"];
-            final totalAmount = category["total_amount"];
-            final icon = category["icon"];
-            final color = category["color"];
+            final categoryName = category["category_name"] ?? "Unknown Category";
+            final totalAmount = category["total_amount"] ?? 0;
+            final iconName = category["icon"] ?? "";  // Lấy tên icon từ dữ liệu
+            final color = category["color"] ?? "0xFFFFFFFF"; // Default color
+            Color categoryColor = resolveColor(category["color"]);
+
+            final iconData = getIcon(iconName); // Sử dụng iconMap để lấy IconData
+
+            // Handle color parsing
+            final colorCode = int.tryParse(color, radix: 16) ?? 0xFFFFFFFF; // Default color if invalid
 
             return Card(
               elevation: 0,
@@ -53,6 +88,7 @@ class ParentCategoryList extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: Theme.of(context).colorScheme.outline.withOpacity(0.1),
@@ -66,12 +102,12 @@ class ParentCategoryList extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: Color(int.parse(color)).withOpacity(0.15),
+                          color: categoryColor.withOpacity(0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          IconData(icon, fontFamily: 'MaterialIcons'),
-                          color: Color(int.parse(color)),
+                          iconData, // Sử dụng iconData đã xử lý từ iconMap
+                          color: categoryColor,
                           size: 24,
                         ),
                       ),
@@ -92,7 +128,7 @@ class ParentCategoryList extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color: Theme.of(context).colorScheme.onSurface,
+                                      color: theme.onSurface,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -104,7 +140,8 @@ class ParentCategoryList extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.secondary,
+                                    color: Colors.grey.shade700
+                                    ,
                                   ),
                                 ),
                               ],
