@@ -42,7 +42,6 @@ class ReportProvider with ChangeNotifier {
   void _updateReportData(List<UserTransaction> transactions) async {
     _transactions = transactions;
     await fetchFilteredBalance();
-    await fetchCategoryPercentages();
     await fetchCategoryAmount();
   }
 
@@ -73,24 +72,7 @@ class ReportProvider with ChangeNotifier {
   }
 
   // Fetch category percentages
-  Future<void> fetchCategoryPercentages({
-    String? categoryType,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    _setLoading(true);
-    try {
-      _categoryPercentages = await _reportDao.calculateCategoryPercentage(
-        categoryType: categoryType,
-        startDate: startDate,
-        endDate: endDate,
-      );
 
-      notifyListeners();
-    } finally {
-      _setLoading(false);
-    }
-  }
 
   // Fetch category amounts
   Future<void> fetchCategoryAmount({
