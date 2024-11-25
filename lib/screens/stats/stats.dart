@@ -16,7 +16,8 @@ class StatScreen extends StatefulWidget {
   _StatScreenState createState() => _StatScreenState();
 }
 
-class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateMixin {
+class _StatScreenState extends State<StatScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   DateTimeRange? selectedDateRange;
   DateTimeRange? selectedWeekRange;
@@ -29,7 +30,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     _tabController = TabController(length: 2, vsync: this);
 
     // Lắng nghe thay đổi từ TransactionProvider
-    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final transactionProvider =
+        Provider.of<TransactionProvider>(context, listen: false);
     final reportProvider = Provider.of<ReportProvider>(context, listen: false);
     reportProvider.listenToTransactions(transactionProvider);
 
@@ -37,7 +39,6 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
       _fetchData();
     });
   }
-
 
   @override
   void dispose() {
@@ -48,14 +49,26 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
 
   Future<void> _fetchData() async {
     final reportProvider = Provider.of<ReportProvider>(context, listen: false);
-    final startDate = selectedDateRange?.start;
-    final endDate = selectedDateRange?.end;
+
+    DateTime? startDate;
+    DateTime? endDate;
+    if (selectedWeekRange != null) {
+      startDate = selectedWeekRange!.start;
+      endDate = selectedWeekRange!.end;
+    } else if (selectedDateRange != null) {
+      startDate = selectedDateRange!.start;
+      endDate = selectedDateRange!.end;
+    }
+
     final categoryType = selectedCategoryType.value;
 
     await Future.wait([
-      reportProvider.fetchFilteredBalance(startDate: startDate, endDate: endDate, categoryType: categoryType),
-      reportProvider.fetchCategoryAmount(startDate: startDate, endDate: endDate, categoryType: categoryType),
-      reportProvider.getTransactions(startDate: startDate, endDate: endDate, categoryType: categoryType),
+      reportProvider.fetchFilteredBalance(
+          startDate: startDate, endDate: endDate, categoryType: categoryType),
+      reportProvider.fetchCategoryAmount(
+          startDate: startDate, endDate: endDate, categoryType: categoryType),
+      reportProvider.getTransactions(
+          startDate: startDate, endDate: endDate, categoryType: categoryType),
     ]);
     setState(() => _refreshKey++);
   }
@@ -91,7 +104,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
             ),
             child: SingleChildScrollView(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -146,7 +160,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
           ),
           PopupMenuButton<String>(
             icon: Icon(Icons.calendar_today, color: theme.primary),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             offset: const Offset(0, 40),
             itemBuilder: (BuildContext context) => [
               PopupMenuItem(
@@ -198,7 +213,7 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
               child: _buildCategoryButton(
                 'Chi tiêu',
                 value == 'expense',
-                    () {
+                () {
                   selectedCategoryType.value = 'expense';
                   _fetchData();
                 },
@@ -209,7 +224,7 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
               child: _buildCategoryButton(
                 'Thu nhập',
                 value == 'income',
-                    () {
+                () {
                   selectedCategoryType.value = 'income';
                   _fetchData();
                 },
@@ -222,7 +237,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildCategoryButton(String text, bool isSelected, VoidCallback onPressed, ColorScheme theme) {
+  Widget _buildCategoryButton(
+      String text, bool isSelected, VoidCallback onPressed, ColorScheme theme) {
     return Padding(
       padding: const EdgeInsets.all(4),
       child: ElevatedButton(
@@ -246,7 +262,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildPieChartSection(ReportProvider reportProvider, ColorScheme theme) {
+  Widget _buildPieChartSection(
+      ReportProvider reportProvider, ColorScheme theme) {
     final categoryAmounts = reportProvider.categoryAmounts;
     if (categoryAmounts.isEmpty) {
       return Center(
@@ -279,7 +296,8 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
 
     return PieChartSection(
       dataMap: dataMap,
-      centerText: selectedCategoryType.value == 'expense' ? 'Chi tiêu' : 'Thu nhập',
+      centerText:
+          selectedCategoryType.value == 'expense' ? 'Chi tiêu' : 'Thu nhập',
       colorList: colorList,
     );
   }
@@ -327,6 +345,33 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildTransactionsList(ReportProvider reportProvider) {
+    // Kiểm tra nếu danh sách transactions là rỗng
+    if (reportProvider.transactions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Icon thông báo không có dữ liệu
+            Icon(
+              Icons.inbox,
+              size: 50,
+              color: Colors.grey,
+            ),
+            const SizedBox(height: 8),
+            // Thông báo không có dữ liệu
+            Text(
+              "Chưa có dữ liệu giao dịch",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -341,6 +386,7 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
       ),
     );
   }
+
 
   Widget _buildParentCategoryList() {
     final reportProvider = Provider.of<ReportProvider>(context);
@@ -362,6 +408,7 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _selectDateRange(BuildContext context) async {
+    // Mở hộp thoại chọn tháng
     DateTime? picked = await showMonthPicker(
       context: context,
       initialDate: selectedDateRange?.start ?? DateTime.now(),
@@ -371,22 +418,21 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
 
     if (picked != null) {
       setState(() {
+        // Chỉ cập nhật selectedDateRange và xóa selectedWeekRange
         selectedDateRange = DateTimeRange(
           start: picked,
           end: DateTime(picked.year, picked.month + 1, 0).subtract(const Duration(days: 1)),
         );
+        selectedWeekRange = null; // Xóa selectedWeekRange khi chuyển về tháng
       });
+
+      // Gọi lại _fetchData() để tải lại dữ liệu cho tháng đã chọn
       await _fetchData();
     }
   }
 
-  DateTimeRange _getWeekRange(DateTime selectedDate) {
-    DateTime startOfWeek = selectedDate.subtract(Duration(days: selectedDate.weekday - DateTime.monday));
-    DateTime endOfWeek = startOfWeek.add(const Duration(days: 6));
-    return DateTimeRange(start: startOfWeek, end: endOfWeek);
-  }
-
   Future<void> _selectWeekRange(BuildContext context) async {
+    // Hiển thị hộp thoại chọn ngày
     DateTime? selectedDay = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
@@ -395,11 +441,35 @@ class _StatScreenState extends State<StatScreen> with SingleTickerProviderStateM
     );
 
     if (selectedDay != null) {
+      // Tính toán khoảng thời gian tuần từ ngày đã chọn
       DateTimeRange selectedWeek = _getWeekRange(selectedDay);
+
       setState(() {
+        // Cập nhật selectedWeekRange và xóa selectedDateRange
         selectedWeekRange = selectedWeek;
+        selectedDateRange = null; // Xóa selectedDateRange khi chuyển về tuần
       });
+
+      // Gọi lại _fetchData() để tải lại dữ liệu cho tuần đã chọn
       await _fetchData();
     }
+  }
+
+
+
+// Hàm tính toán khoảng thời gian tuần từ một ngày đã chọn
+  DateTimeRange _getWeekRange(DateTime selectedDate) {
+    // Tính ngày bắt đầu tuần (Thứ Hai)
+    DateTime startOfWeek = selectedDate
+        .subtract(Duration(days: selectedDate.weekday - DateTime.monday));
+    startOfWeek =
+        DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+
+    // Tính ngày kết thúc tuần (Chủ Nhật)
+    DateTime endOfWeek = startOfWeek.add(Duration(days: 6));
+    endOfWeek = DateTime(endOfWeek.year, endOfWeek.month, endOfWeek.day, 23, 59,
+        59, 999); // Bao gồm hết ngày Chủ Nhật
+
+    return DateTimeRange(start: startOfWeek, end: endOfWeek);
   }
 }

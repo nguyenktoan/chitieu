@@ -23,11 +23,20 @@ dependencies:
 
 
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
   flutter_launcher_icons: "^0.14.1"
+
+flutter_launcher_icons:
+  android: true  # Thay đổi biểu tượng cho Android
+  ios: false     # Không thay đổi biểu tượng trên iOS
+  image_path: "assets/icon/icon.png"  # Đường dẫn đến ảnh biểu tượng
+
+
+
 
 
 flutter:
@@ -35,8 +44,3 @@ flutter:
   assets:
     - assets/icon/icon.png
 
-flutter_launcher_icons:
-  android: "launcher_icon"
-  ios: false
-  image_path: "assets/icon/icon.png"
-  min_sdk_android: 21 # android min sdk min:16, default 21

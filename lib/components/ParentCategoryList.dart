@@ -14,6 +14,7 @@ class ParentCategoryList extends StatelessWidget {
     );
     return formatCurrency.format(amount);
   }
+
   Color resolveColor(String? colorString) {
     try {
       return Color(int.parse(colorString ?? "0xFF888888"));
@@ -46,17 +47,45 @@ class ParentCategoryList extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context).colorScheme;
 
-    return FutureBuilder<Map<String, Map<String, dynamic>>>(
+    return FutureBuilder<Map<String, Map<String, dynamic>>>(  // Đang sử dụng FutureBuilder
       future: categoryAmounts,
       builder: (context, snapshot) {
+        // Trạng thái loading
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
+        }
+        // Trạng thái lỗi
+        else if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const Center(child: Text('No categories found.'));
+        }
+        // Nếu không có dữ liệu
+        else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icon không có dữ liệu
+                Icon(
+                  Icons.inbox,
+                  size: 50,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 8),
+                // Thông báo không có danh mục
+                Text(
+                  "Chưa có danh mục nào.",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
         }
 
+        // Khi có dữ liệu danh mục
         final categories = snapshot.data!;
 
         return ListView.builder(
@@ -70,9 +99,6 @@ class ParentCategoryList extends StatelessWidget {
             Color categoryColor = resolveColor(category["color"]);
 
             final iconData = getIcon(iconName); // Sử dụng iconMap để lấy IconData
-
-            // Handle color parsing
-            final colorCode = int.tryParse(color, radix: 16) ?? 0xFFFFFFFF; // Default color if invalid
 
             return Card(
               elevation: 0,
@@ -140,8 +166,7 @@ class ParentCategoryList extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.grey.shade700
-                                    ,
+                                    color: Colors.grey.shade700,
                                   ),
                                 ),
                               ],
