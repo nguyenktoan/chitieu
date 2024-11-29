@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';  // Import thư viện intl
+import 'package:intl/intl.dart'; // Import thư viện intl
 
 class IncomeExpenseSummaryCard extends StatelessWidget {
   final int income;
@@ -56,17 +56,17 @@ class IncomeExpenseSummaryCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _buildSummaryCard(
-                      title: 'Thu nhập',
-                      amount: formatCurrency(income),
-                      color: theme.secondary,
+                      title: 'Chi tiêu',
+                      amount: formatCurrency(expense),
+                      color: theme.tertiary,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildSummaryCard(
-                      title: 'Chi tiêu',
-                      amount: formatCurrency(expense),
-                      color: theme.tertiary,
+                      title: 'Thu nhập',
+                      amount: formatCurrency(income),
+                      color: theme.primary,
                     ),
                   ),
                 ],

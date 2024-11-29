@@ -1,13 +1,14 @@
+import 'package:chitieu/screens/stats/stat_widgets/tabSection.dart';
 import 'package:flutter/material.dart';
 import 'package:month_picker_dialog/month_picker_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:pie_chart/pie_chart.dart';
-import '../../components/IncomeExpenseSummaryCard.dart';
-import '../../components/ParentCategoryList.dart';
+import 'stat_widgets/IncomeExpenseSummaryCard.dart';
+import 'stat_widgets/ParentCategoryList.dart';
 import '../../components/transaction_item.dart';
 import '../../helpers/providers/report_provider.dart';
 import '../../helpers/providers/transaction_provider.dart';
-import 'charts/pie_chart.dart';
+import 'stat_widgets/pie_chart.dart';
 
 class StatScreen extends StatefulWidget {
   const StatScreen({super.key});
@@ -66,6 +67,8 @@ class _StatScreenState extends State<StatScreen>
       reportProvider.fetchFilteredBalance(
           startDate: startDate, endDate: endDate, categoryType: categoryType),
       reportProvider.fetchCategoryAmount(
+          startDate: startDate, endDate: endDate, categoryType: categoryType),
+      reportProvider.getTransactions(
           startDate: startDate, endDate: endDate, categoryType: categoryType),
       reportProvider.getTransactions(
           startDate: startDate, endDate: endDate, categoryType: categoryType),
@@ -200,6 +203,7 @@ class _StatScreenState extends State<StatScreen>
 
   Widget _buildCategoryTypeSelector(ColorScheme theme) {
     return ValueListenableBuilder<String>(
+
       valueListenable: selectedCategoryType,
       builder: (context, value, child) => Container(
         padding: const EdgeInsets.all(4),
@@ -218,6 +222,7 @@ class _StatScreenState extends State<StatScreen>
                   _fetchData();
                 },
                 theme,
+
               ),
             ),
             Expanded(
@@ -239,12 +244,25 @@ class _StatScreenState extends State<StatScreen>
 
   Widget _buildCategoryButton(
       String text, bool isSelected, VoidCallback onPressed, ColorScheme theme) {
+    // Define colors for each category type
+    Color buttonColor = (text == 'Chi tiêu')
+        ? (isSelected ? theme.tertiary : Colors.white) // Red color for "Chi tiêu"
+        : (text == 'Thu nhập')
+        ? (isSelected ? theme.primary : Colors.white) // Green color for "Thu nhập"
+        : Colors.white; // Default color for others
+
+    Color textColor = (text == 'Chi tiêu')
+        ? (isSelected ? Colors.white : theme.onSurface) // White text when selected, else theme's surface text color
+        : (text == 'Thu nhập')
+        ? (isSelected ? Colors.white : theme.onSurface)
+        : theme.onSurface;
+
     return Padding(
       padding: const EdgeInsets.all(4),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isSelected ? theme.primary : Colors.white,
-          foregroundColor: isSelected ? Colors.white : theme.onSurface,
+          backgroundColor: buttonColor,
+          foregroundColor: textColor,
           elevation: isSelected ? 4 : 0,
           padding: const EdgeInsets.symmetric(vertical: 12),
           shape: RoundedRectangleBorder(
@@ -261,6 +279,7 @@ class _StatScreenState extends State<StatScreen>
       ),
     );
   }
+
 
   Widget _buildPieChartSection(
       ReportProvider reportProvider, ColorScheme theme) {
@@ -303,95 +322,10 @@ class _StatScreenState extends State<StatScreen>
   }
 
   Widget _buildTabSection(ReportProvider reportProvider, ColorScheme theme) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: theme.primary.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TabBar(
-            controller: _tabController,
-            labelColor: theme.primary,
-            unselectedLabelColor: theme.outline,
-            indicatorColor: theme.primary,
-            indicatorSize: TabBarIndicatorSize.label,
-            tabs: const [
-              Tab(text: 'Tất cả'),
-              Tab(text: 'Danh mục'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: MediaQuery.of(context).size.height * 0.35,
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildTransactionsList(reportProvider),
-              _buildParentCategoryList(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTransactionsList(ReportProvider reportProvider) {
-    // Kiểm tra nếu danh sách transactions là rỗng
-    if (reportProvider.transactions.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Icon thông báo không có dữ liệu
-            Icon(
-              Icons.inbox,
-              size: 50,
-              color: Colors.grey,
-            ),
-            const SizedBox(height: 8),
-            // Thông báo không có dữ liệu
-            Text(
-              "Chưa có dữ liệu giao dịch",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: ListView.builder(
-        padding: EdgeInsets.zero,
-        itemCount: reportProvider.transactions.length,
-        itemBuilder: (context, index) => TransactionItem(
-          transaction: reportProvider.transactions[index].toMap(),
-        ),
-      ),
-    );
-  }
-
-
-  Widget _buildParentCategoryList() {
-    final reportProvider = Provider.of<ReportProvider>(context);
-    return ParentCategoryList(
-      categoryAmounts: Future.value(reportProvider.categoryAmounts),
+    return TabSection(
+      tabController: _tabController,
+      reportProvider: reportProvider,
+      theme: theme,
     );
   }
 
@@ -421,12 +355,12 @@ class _StatScreenState extends State<StatScreen>
         // Chỉ cập nhật selectedDateRange và xóa selectedWeekRange
         selectedDateRange = DateTimeRange(
           start: picked,
-          end: DateTime(picked.year, picked.month + 1, 0).subtract(const Duration(days: 1)),
+          end: DateTime(picked.year, picked.month + 1, 0)
+              .subtract(const Duration(days: 1)),
         );
-        selectedWeekRange = null; // Xóa selectedWeekRange khi chuyển về tháng
+        selectedWeekRange = null;
       });
 
-      // Gọi lại _fetchData() để tải lại dữ liệu cho tháng đã chọn
       await _fetchData();
     }
   }
@@ -443,7 +377,6 @@ class _StatScreenState extends State<StatScreen>
     if (selectedDay != null) {
       // Tính toán khoảng thời gian tuần từ ngày đã chọn
       DateTimeRange selectedWeek = _getWeekRange(selectedDay);
-
       setState(() {
         // Cập nhật selectedWeekRange và xóa selectedDateRange
         selectedWeekRange = selectedWeek;
@@ -454,8 +387,6 @@ class _StatScreenState extends State<StatScreen>
       await _fetchData();
     }
   }
-
-
 
 // Hàm tính toán khoảng thời gian tuần từ một ngày đã chọn
   DateTimeRange _getWeekRange(DateTime selectedDate) {
