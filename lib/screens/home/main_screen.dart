@@ -102,7 +102,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
                 Text(
-                  "Hứa Tuấn Vĩ", // Thay bằng tên người dùng động nếu cần
+                  "Hua Tuan Vi", // Thay bằng tên người dùng động nếu cần
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -113,15 +113,15 @@ class _MainScreenState extends State<MainScreen> {
             ),
           ],
         ),
-        IconButton(
-          onPressed: () {
-            // TODO: Implement settings screen
-          },
-          icon: Icon(
-            Icons.settings,
-            color: Theme.of(context).colorScheme.secondary,
-          ),
-        ),
+        // IconButton(
+        //   onPressed: () {
+        //     // TODO: Implement settings screen
+        //   },
+        //   icon: Icon(
+        //     Icons.settings,
+        //     color: Theme.of(context).colorScheme.secondary,
+        //   ),
+        // ),
       ],
     );
   }

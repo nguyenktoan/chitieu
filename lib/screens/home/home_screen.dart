@@ -1,5 +1,4 @@
 import 'package:chitieu/screens/add_expense/add_expense.dart';
-import 'package:chitieu/screens/login/login.dart';
 import 'package:chitieu/screens/stats/stats.dart';
 import 'package:chitieu/screens/home/main_screen.dart';
 import 'package:flutter/material.dart';
