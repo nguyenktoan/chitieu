@@ -9,7 +9,7 @@
 - Hứa Tuấn Vĩ 
 - Trần Phương Nghi 
 
-**Ngày báo cáo**: [31/11/2024]
+**Ngày báo cáo**: [30/11/2024]
 
 ---
 
