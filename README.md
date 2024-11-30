@@ -98,17 +98,14 @@
 - **Màn hình thêm giao dịch**: Các trường nhập thông tin giao dịch như số tiền, danh mục, ngày tháng.
 - **Màn hình báo cáo**: Thống kê chi tiêu với các biểu đồ đơn giản.
 
-![img_1.png](img_1.png)
-
-![img_2.png](img_2.png)
-
-![img_3.png](img_3.png)
-
-![img_4.png](img_4.png)
-
-![img_5.png](img_5.png)
-
-![img_6.png](img_6.png)
+<div align="center">
+    <img src="img_1.png" alt="Màn hình chính" width="400">
+    <img src="img_2.png" alt="Màn hình thêm giao dịch" width="400">
+    <img src="img_3.png" alt="Màn hình báo cáo" width="400">
+    <img src="img_4.png" alt="Biểu đồ tài chính" width="400">
+    <img src="img_5.png" alt="Thêm giao dịch" width="400">
+    <img src="img_6.png" alt="Quản lý ngân sách" width="400">
+</div>
 
 ## **6. Đánh giá và Bài học Kinh nghiệm**
 
