@@ -2,38 +2,32 @@
 
 **Tên dự án**: **BudgetMe**  
 **Nhóm thực hiện**:
-- Nguyễn Khánh Toàn 
-- Trần Lê Xuân My 
-- Nguyễn Hương Giang 
-- Phạm Mai Chi 
-- Hứa Tuấn Vĩ 
-- Trần Phương Nghi 
+1. Nguyễn Khánh Toàn 
+2. Trần Lê Xuân My 
+3. Nguyễn Hương Giang 
+4. Phạm Mai Chi 
+5. Hứa Tuấn Vĩ 
+6. Trần Phương Nghi 
 
-**Ngày báo cáo**: [31/11/2024]
+**Ngày báo cáo**: [30/11/2024]
 
 ---
 
 ## **1. Giới thiệu Dự án**
 
-### **1.1 Mục tiêu Dự án**
 **BudgetMe** là một ứng dụng di động giúp người dùng quản lý tài chính cá nhân bằng cách ghi nhận và theo dõi các khoản thu chi. Mục tiêu của ứng dụng là cung cấp một công cụ đơn giản, dễ sử dụng, giúp người dùng quản lý tài chính hiệu quả và có cái nhìn tổng quan về tình hình tài chính cá nhân của mình.
 
 Ứng dụng cho phép người dùng:
-- Ghi lại các khoản thu/chi với các chi tiết như số tiền, danh mục, ngày tháng, và ghi chú.
+- **Ghi lại/Xoá/Sửa** các khoản **thu/chi** với các chi tiết như số tiền, danh mục, ngày tháng, và ghi chú.
 - Xem lịch sử các giao dịch đã thực hiện.
 - Thống kê và phân tích chi tiêu qua các báo cáo tài chính.
-
-### **1.2 Lý do chọn Dự án**
-- **Tính cần thiết**: Quản lý tài chính cá nhân là một nhu cầu thiết yếu, tuy nhiên nhiều ứng dụng hiện tại chưa đáp ứng được yêu cầu của người dùng về tính đơn giản và tiện lợi.
-- **Học hỏi**: Dự án này không chỉ giúp nhóm học hỏi về lập trình di động và phát triển ứng dụng, mà còn giúp rèn luyện kỹ năng làm việc nhóm và giải quyết vấn đề trong thực tế.
-
----
 
 ## **2. Tính năng của Ứng dụng**
 
 1. **Thêm giao dịch mới**:
     - Người dùng có thể ghi lại các giao dịch thu hoặc chi, với thông tin chi tiết như số tiền, danh mục, ngày tháng và ghi chú.
-
+2. **Chỉnh sửa/Xoá giao dịch**
+    - Người dùng có thể **chỉnh sửa hoặc xoá** các giao dịch thu hoặc chi, với thông tin chi tiết như số tiền, danh mục, ngày tháng và ghi chú.
 2. **Danh sách giao dịch**:
     - Người dùng có thể xem lại tất cả các giao dịch đã thực hiện trong quá khứ. Danh sách được sắp xếp theo thứ tự thời gian, giúp người dùng dễ dàng tra cứu.
 
@@ -104,6 +98,17 @@
 - **Màn hình thêm giao dịch**: Các trường nhập thông tin giao dịch như số tiền, danh mục, ngày tháng.
 - **Màn hình báo cáo**: Thống kê chi tiêu với các biểu đồ đơn giản.
 
+![img_1.png](img_1.png)
+
+![img_2.png](img_2.png)
+
+![img_3.png](img_3.png)
+
+![img_4.png](img_4.png)
+
+![img_5.png](img_5.png)
+
+![img_6.png](img_6.png)
 
 ## **6. Đánh giá và Bài học Kinh nghiệm**
 
@@ -145,16 +150,7 @@ triển và cải thiện ứng dụng trong tương lai.
 
 ---
 
-## **9. Thông tin Liên hệ**
 
-- **GitHub Repository**: [BudgetMe trên GitHub](https://github.com/nguyenktoan/chitieu)
-- **Nhóm phát triển**:
-    - Nguyễn Khánh Toàn (Nhóm trưởng) 
-    - Trần Lê Xuân My (Figma/Database)
-    - Nguyễn Hương Giang (Database)
-    - Phạm Mai Chi (Database)
-    - Hứa Tuấn Vĩ (Logic)
-    - Trần Phương Nghi (Code UI)
 
 
 

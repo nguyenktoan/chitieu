@@ -113,95 +113,95 @@ class ReportDao {
     return categoryAmounts;
   }
 
-  // Calculate percentage of each category compared to the total
-  Future<Map<String, double>> calculateCategoryPercentage({
-    String? categoryType,
-    DateTime? startDate,
-    DateTime? endDate,
-  }) async {
-    final categoryAmount = await calculateCategoryAmount(
-      categoryType: categoryType,
-      startDate: startDate,
-      endDate: endDate,
-    );
-
-    final balanceData = await calculateFilteredBalance(
-      categoryType: categoryType,
-      startDate: startDate,
-      endDate: endDate,
-    );
-
-    // Ensure the totalAmount is not null before calculating percentages
-    final totalAmount = categoryType == 'income'
-        ? (balanceData['income'] ?? 0)
-        : (balanceData['expense'] ?? 0);
-
-    Map<String, double> categoryPercentages = {};
-    if (totalAmount > 0) {
-      categoryAmount.forEach((categoryName, categoryData) {
-        final totalAmountForCategory = categoryData['total_amount'] as int? ?? 0;
-
-        // Avoid division by zero and calculate percentage
-        if (totalAmountForCategory > 0) {
-          categoryPercentages[categoryName] = (totalAmountForCategory / totalAmount) * 100;
-        } else {
-          categoryPercentages[categoryName] = 0; // Set to 0 if the category's total amount is 0
-        }
-      });
-    } else {
-      // If totalAmount is zero, set all percentages to 0
-      categoryAmount.forEach((categoryName, categoryData) {
-        categoryPercentages[categoryName] = 0;
-      });
-    }
-
-    return categoryPercentages;
-  }
+  // // Calculate percentage of each category compared to the total
+  // Future<Map<String, double>> calculateCategoryPercentage({
+  //   String? categoryType,
+  //   DateTime? startDate,
+  //   DateTime? endDate,
+  // }) async {
+  //   final categoryAmount = await calculateCategoryAmount(
+  //     categoryType: categoryType,
+  //     startDate: startDate,
+  //     endDate: endDate,
+  //   );
+  //
+  //   final balanceData = await calculateFilteredBalance(
+  //     categoryType: categoryType,
+  //     startDate: startDate,
+  //     endDate: endDate,
+  //   );
+  //
+  //   // Ensure the totalAmount is not null before calculating percentages
+  //   final totalAmount = categoryType == 'income'
+  //       ? (balanceData['income'] ?? 0)
+  //       : (balanceData['expense'] ?? 0);
+  //
+  //   Map<String, double> categoryPercentages = {};
+  //   if (totalAmount > 0) {
+  //     categoryAmount.forEach((categoryName, categoryData) {
+  //       final totalAmountForCategory = categoryData['total_amount'] as int? ?? 0;
+  //
+  //       // Avoid division by zero and calculate percentage
+  //       if (totalAmountForCategory > 0) {
+  //         categoryPercentages[categoryName] = (totalAmountForCategory / totalAmount) * 100;
+  //       } else {
+  //         categoryPercentages[categoryName] = 0; // Set to 0 if the category's total amount is 0
+  //       }
+  //     });
+  //   } else {
+  //     // If totalAmount is zero, set all percentages to 0
+  //     categoryAmount.forEach((categoryName, categoryData) {
+  //       categoryPercentages[categoryName] = 0;
+  //     });
+  //   }
+  //
+  //   return categoryPercentages;
+  // }
 
   // Calculate growth (current month vs previous month or current week vs previous week)
-  Future<Map<String, int>> calculateGrowth({
-    required String periodType, // "month" or "week"
-    required DateTime currentPeriod,
-  }) async {
-    final db = await _databaseHelper.database;
-
-    DateTime startDateCurrentPeriod;
-    DateTime endDateCurrentPeriod;
-    DateTime startDatePreviousPeriod;
-    DateTime endDatePreviousPeriod;
-
-    if (periodType == 'month') {
-      startDateCurrentPeriod = DateTime(currentPeriod.year, currentPeriod.month, 1);
-      endDateCurrentPeriod = DateTime(currentPeriod.year, currentPeriod.month + 1, 0);
-      startDatePreviousPeriod = DateTime(currentPeriod.year, currentPeriod.month - 1, 1);
-      endDatePreviousPeriod = DateTime(currentPeriod.year, currentPeriod.month, 0);
-    } else if (periodType == 'week') {
-      startDateCurrentPeriod = currentPeriod.subtract(Duration(days: currentPeriod.weekday - 1));
-      endDateCurrentPeriod = startDateCurrentPeriod.add(Duration(days: 6));
-      startDatePreviousPeriod = startDateCurrentPeriod.subtract(Duration(days: 7));
-      endDatePreviousPeriod = endDateCurrentPeriod.subtract(Duration(days: 7));
-    } else {
-      throw ArgumentError('Invalid period type');
-    }
-
-    final currentPeriodData = await calculateFilteredBalance(
-      startDate: startDateCurrentPeriod,
-      endDate: endDateCurrentPeriod,
-    );
-
-    final previousPeriodData = await calculateFilteredBalance(
-      startDate: startDatePreviousPeriod,
-      endDate: endDatePreviousPeriod,
-    );
-
-    final incomeGrowth = (currentPeriodData['income'] ?? 0) - (previousPeriodData['income'] ?? 0);
-    final expenseGrowth = (currentPeriodData['expense'] ?? 0) - (previousPeriodData['expense'] ?? 0);
-
-    return {
-      'incomeGrowth': incomeGrowth,
-      'expenseGrowth': expenseGrowth,
-    };
-  }
+  // Future<Map<String, int>> calculateGrowth({
+  //   required String periodType, // "month" or "week"
+  //   required DateTime currentPeriod,
+  // }) async {
+  //   final db = await _databaseHelper.database;
+  //
+  //   DateTime startDateCurrentPeriod;
+  //   DateTime endDateCurrentPeriod;
+  //   DateTime startDatePreviousPeriod;
+  //   DateTime endDatePreviousPeriod;
+  //
+  //   if (periodType == 'month') {
+  //     startDateCurrentPeriod = DateTime(currentPeriod.year, currentPeriod.month, 1);
+  //     endDateCurrentPeriod = DateTime(currentPeriod.year, currentPeriod.month + 1, 0);
+  //     startDatePreviousPeriod = DateTime(currentPeriod.year, currentPeriod.month - 1, 1);
+  //     endDatePreviousPeriod = DateTime(currentPeriod.year, currentPeriod.month, 0);
+  //   } else if (periodType == 'week') {
+  //     startDateCurrentPeriod = currentPeriod.subtract(Duration(days: currentPeriod.weekday - 1));
+  //     endDateCurrentPeriod = startDateCurrentPeriod.add(Duration(days: 6));
+  //     startDatePreviousPeriod = startDateCurrentPeriod.subtract(Duration(days: 7));
+  //     endDatePreviousPeriod = endDateCurrentPeriod.subtract(Duration(days: 7));
+  //   } else {
+  //     throw ArgumentError('Invalid period type');
+  //   }
+  //
+  //   final currentPeriodData = await calculateFilteredBalance(
+  //     startDate: startDateCurrentPeriod,
+  //     endDate: endDateCurrentPeriod,
+  //   );
+  //
+  //   final previousPeriodData = await calculateFilteredBalance(
+  //     startDate: startDatePreviousPeriod,
+  //     endDate: endDatePreviousPeriod,
+  //   );
+  //
+  //   final incomeGrowth = (currentPeriodData['income'] ?? 0) - (previousPeriodData['income'] ?? 0);
+  //   final expenseGrowth = (currentPeriodData['expense'] ?? 0) - (previousPeriodData['expense'] ?? 0);
+  //
+  //   return {
+  //     'incomeGrowth': incomeGrowth,
+  //     'expenseGrowth': expenseGrowth,
+  //   };
+  // }
   Future<List<Map<String, dynamic>>> getTransactions(
       Database db, {
         DateTime? startDate,
