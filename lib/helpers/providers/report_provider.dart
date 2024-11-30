@@ -102,26 +102,26 @@ class ReportProvider with ChangeNotifier {
   }
 
   // Fetch growth data
-  Future<void> fetchGrowth({
-    required String periodType,
-    required DateTime currentPeriod,
-  }) async {
-    _setLoading(true);
-    try {
-      final growthData = await _reportDao.calculateGrowth(
-        periodType: periodType,
-        currentPeriod: currentPeriod,
-      );
-
-      _income += growthData['incomeGrowth'] ?? 0;
-      _expense += growthData['expenseGrowth'] ?? 0;
-      _balance = _income - _expense;
-
-      notifyListeners();
-    } finally {
-      _setLoading(false);
-    }
-  }
+  // Future<void> fetchGrowth({
+  //   required String periodType,
+  //   required DateTime currentPeriod,
+  // }) async {
+  //   _setLoading(true);
+  //   try {
+  //     final growthData = await _reportDao.calculateGrowth(
+  //       periodType: periodType,
+  //       currentPeriod: currentPeriod,
+  //     );
+  //
+  //     _income += growthData['incomeGrowth'] ?? 0;
+  //     _expense += growthData['expenseGrowth'] ?? 0;
+  //     _balance = _income - _expense;
+  //
+  //     notifyListeners();
+  //   } finally {
+  //     _setLoading(false);
+  //   }
+  // }
 
   // Fetch transactions
   Future<void> getTransactions({
